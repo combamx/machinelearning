@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use Exception;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,6 +13,8 @@ use Illuminate\Queue\SerializesModels;
 class BuscarPalabraContenido implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    private $cacheEstados = array();
 
     /**
      * Create a new job instance.
@@ -30,106 +33,127 @@ class BuscarPalabraContenido implements ShouldQueue
      */
     public function handle()
     {
-        ini_set('memory_limit', '-1');
+        try{
+            $this->CagarEstados();
 
-        echo "Buscando en el Contenido\n";
+            echo "===== Iniciando busqueda en el Contenido ".date("H:i:s")." =====\n";
 
-        $news = "public/news/news-".date("Y-m-d").".json";
+            $news = "public/news/news-" . date("Y-m-d") . ".json";
 
-        $datos_news = file_get_contents($news);
-        $json_news = json_decode($datos_news);
-        $count = 1;
+            $datos_news = file_get_contents($news);
+            $json_news = json_decode($datos_news);
 
-        foreach($json_news as $news){
+            echo "Total de notas a taggear " . count($json_news) ."\n";
+
+            $json_estado = json_decode(json_encode($this->cacheEstados));
+
+            foreach ($json_news as $news) {
+                $this->TaggeoNews($news, $json_estado);
+            }
+
+            echo "===== Terminando la busqueda en el Contenido ".date("H:i:s")." =====\n";
+
+            unset($datos_news);
+            unset($json_news);
+            unset($json_estado);
+            unset($this->cacheEstados);
+        }
+        catch(Exception $ex){
+            var_dump($ex->getMessage());
+        }
+    }
+
+    private function TaggeoNews($news, $json_estado){
+        try{
+            ini_set('memory_limit', '-1');
+
+            foreach($json_estado as $estado){
+
+                $newNews = "public/taggeo/" . $news->id . "-" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->estado)). "-" . date("Y-m-d-H-i-s") . ".json";
+
+                if (file_exists($newNews)) {
+                    //unlink($newNews);
+                    break;
+                }
+
+                if ($news->content != "") {
+                    $cadena_contenido = strtolower($news->content);
+                    $cadena_estado   = strtolower($estado->estado);
+
+                    if (strpos($cadena_contenido, $cadena_estado) !== false) {
+                        $news->estado = $estado->id;
+                        $json_municipios = isset($estado->municipios) ? $estado->municipios : array();
+
+                        foreach ($json_municipios as $municipio) {
+                            $cadena_buscada_mun = strtolower($municipio->municipio);
+                            $cadena_buscada_est_mun = $cadena_buscada_mun . ", " . $cadena_estado;
+
+                            if (strpos($cadena_contenido, $cadena_buscada_mun) !== false || strpos($cadena_contenido, $cadena_buscada_est_mun) !== false) {
+                                $news->municipio = $municipio->id;
+                            }
+
+                            $json_asentamientos = $municipio->asentamientos;
+
+                            foreach ($json_asentamientos as $asentamiento) {
+
+                                $cadena_buscada_asen = strtolower($asentamiento->nom_asentamiento);
+                                $cadena_buscada_asen_min = strtolower($asentamiento->d_asenta);
+
+                                if (strpos($cadena_contenido, $cadena_buscada_asen) !== false || strpos($cadena_contenido, $cadena_buscada_asen_min) !== false) {
+                                    $news->estado = $estado->id;
+                                    $news->municipio = $municipio->id;
+                                    $news->asentamiento = $asentamiento->id;
+                                    $news->cp = $asentamiento->cp;
+                                    $news->idPostalCode = $asentamiento->idPostalCode;
+                                }
+                            }
+                        }
+
+                        $json = json_encode($news, JSON_UNESCAPED_UNICODE);
+                        file_put_contents($newNews, $json);
+
+                        echo $newNews."\n";
+                    }
+                }
+            }
+
+            unset($news);
+            unset($json_estado);
+
+            return true;
+        }
+        catch(Exception $ex){
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    private function CagarEstados(){
+        try{
+            ini_set('memory_limit', '-1');
 
             $thefolder = "public/json/";
             if ($handler = opendir($thefolder)) {
 
-                while (false !== ($file = readdir($handler))) {
-                    $archivo = $file;
+                while (false !== ($archivo = readdir($handler))) {
 
-                    if( $file != "." && $file != ".."){
-                        echo $count++ ."; ".$news->id.".- ".$archivo."\n";
+                    if ($archivo != "." && $archivo != "..") {
 
-                        $datos_estado = file_get_contents("public/json/".$archivo);
-                        $json_estado = json_decode($datos_estado);
-                        $estado = $json_estado[0];
+                        $datos_estado = file_get_contents("public/json/" . $archivo);
+                        $json_estado = json_decode($datos_estado, true);
 
+                        array_push($this->cacheEstados, $json_estado[0]);
 
-                        if ($news->content != "" && $news->estado == 0){
-                            $cadena_contenido = strtolower($news->content);
-                            $cadena_estado   = strtolower($estado->estado);
+                        echo "Se cargo el archivo " . $archivo." a memoria\n";
 
-                            //echo substr_count($cadena_contenido, $cadena_estado) . "\n"; break;
-
-                            if (strpos($cadena_contenido, $cadena_estado) !== false) {
-                                //echo $news->id . " se encontro el Estado " . $cadena_estado ."\n";
-
-                                $news->estado = $estado->id;
-                                $json_municipios = isset($estado->municipios)?$estado->municipios:array();
-
-                                foreach($json_municipios as $municipio){
-                                    $cadena_buscada_mun = strtolower($municipio->municipio);
-                                    $cadena_buscada_est_mun = $cadena_buscada_mun . ", " . $cadena_estado;
-
-                                    if (strpos($cadena_contenido, $cadena_buscada_mun) !== false || strpos($cadena_contenido, $cadena_buscada_est_mun) !== false){
-                                        //echo $news->id . " se encontro el Municipio " . $cadena_buscada_mun . "\n";
-                                        $news->municipio = $municipio->id;
-                                    }
-
-                                    $json_asentamientos = $municipio->asentamientos;
-
-                                    foreach($json_asentamientos as $asentamiento){
-
-                                        $cadena_buscada_asen = strtolower($asentamiento->nom_asentamiento);
-
-                                        if (strpos($cadena_contenido, $cadena_buscada_asen) !== false){
-                                            //echo $news->id . " se encontro el Asentamiento " . $cadena_buscada_asen . "\n";
-                                            $news->estado = $estado->id;
-                                            $news->municipio = $municipio->id;
-                                            $news->asentamiento = $asentamiento->id;
-                                            $news->cp = $asentamiento->cp;
-                                            $news->idPostalCode = $asentamiento->idPostalCode;
-                                        }
-
-                                    }
-                                }
-
-                                //var_dump($news); exit;
-                                /*
-                                if (!file_exists($archivo)) {
-                                    $fh = fopen("public/prueba.txt", 'a+');
-                                    fwrite($fh, $news->id. " " . $news->content ."\n\n");
-                                    fclose($fh);
-                                }
-                                */
-
-                                $newNews = "public/news/".$news->id."-".$estado->estado."-".date("Y-m-d-i-s").".json";
-
-                                if (file_exists($newNews)) {
-                                    unlink($newNews);
-                                }
-
-                                $json = json_encode($news, JSON_UNESCAPED_UNICODE);
-                                file_put_contents($newNews, $json);
-
-                            }
-                        }
-
+                        unset($datos_estado);
+                        unset($json_estado);
                     }
                 }
                 closedir($handler);
             }
-
         }
-
-        unset($datos_estado);
-        unset($json_estado);
-
-        // Leemos el JSON
-
-
-
-
+        catch(Exception $ex){
+            throw new Exception($ex->getMessage());
+        }
     }
 }

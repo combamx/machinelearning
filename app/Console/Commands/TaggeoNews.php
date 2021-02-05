@@ -65,19 +65,21 @@ class TaggeoNews extends Command
 
             $archivo = "public/news/news-" . date("Y-m-d") . ".json";
             if (file_exists($archivo)) {
-                unlink($archivo);
-                //echo "Las noticias existen\n";
-                //return true;
+                //unlink($archivo);
+                //echo "Se elimino el archivo ".$archivo."\n";
+                echo "El archivo ".$archivo." ya existe\n";
+
+                return true;
             }
 
-            $news = \DB::select("SELECT id, title, summary, content FROM news WHERE created_at >= now() - INTERVAL 1 DAY AND id_author != 100  AND id_status_news = 2 AND url is null ORDER BY created_at DESC");
+            $news = \DB::select("SELECT id, title, summary, content FROM news WHERE created_at >= now() - INTERVAL 1 DAY AND id_author != 100  AND id_status_news = 2 AND url IS NULL AND content <> '' ORDER BY created_at DESC");
 
             foreach ($news as $new) {
                 $obj = array(
                     "id" => $new->id,
                     "title" => strtolower($new->title),
-                    "summary" => strtolower(str_replace(array("\n","\t","\\"), "", $new->summary)),
-                    "content" => strip_tags(strtolower(str_replace(array("\n","\t","\\"), "", $new->content))),
+                    "summary" => strtolower(str_replace(array("\n", "\t", "\\"), "", $new->summary)),
+                    "content" => strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $new->content))),
                     "estado" => 0,
                     "municipio" => 0,
                     "asentamiento" => 0,
@@ -95,7 +97,9 @@ class TaggeoNews extends Command
 
             unset($objNews);
 
-            echo "Se crearon las Noticias Json\n";
+            echo "Se creo el archivo ".$archivo."\n";
+
+            return true;
         } catch (Exception $ex) {
             \Log::error($ex->getMessage()());
             throw new Exception($ex->getMessage());
@@ -112,14 +116,13 @@ class TaggeoNews extends Command
              */
 
             $estados = \DB::select("SELECT DISTINCT c_estado, d_estado, COUNT(c_municipio) FROM postal_codes WHERE d_asenta != 'México' GROUP BY d_estado ORDER BY c_municipio;");
-
             foreach ($estados as $estado) {
 
                 $objEstados = array();
                 $objMunicipios = array();
                 $objAsentamientos = array();
 
-                $archivo = "public/json/".str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->d_estado)).".json";
+                $archivo = "public/json/" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->d_estado)) . ".json";
                 if (!file_exists($archivo)) {
                     //unlink($archivo);
 
@@ -134,6 +137,8 @@ class TaggeoNews extends Command
                             $objA = array(
                                 "id" => $asentamiento->id_asenta_cpcons,
                                 "nom_asentamiento" => $asentamiento->nom_asentamiento,
+                                "d_tipo_asenta" => $asentamiento->d_tipo_asenta,
+                                "d_asenta" => $asentamiento->d_asenta,
                                 "cp" => $asentamiento->d_codigo,
                                 "idPostalCode" => $asentamiento->id
                             );
@@ -178,7 +183,9 @@ class TaggeoNews extends Command
 
                     $json = json_encode($objEstados, JSON_UNESCAPED_UNICODE);
                     file_put_contents($archivo, $json);
-
+                }
+                else{
+                    echo "El archivo " . $archivo ." ya existe\n";
                 }
             }
 
@@ -189,9 +196,8 @@ class TaggeoNews extends Command
         }
     }
 
-    private function BuscarNota(){
-        //BuscarPalabraTitulo::dispatch();
-        //BuscarPalabraResena::dispatch();
+    private function BuscarNota()
+    {
         BuscarPalabraContenido::dispatch();
     }
 }
