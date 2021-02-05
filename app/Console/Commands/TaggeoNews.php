@@ -48,7 +48,7 @@ class TaggeoNews extends Command
 
             echo "Proceso Terminado\n";
         } catch (Exception $ex) {
-            var_dump($ex);
+            \Log::error($ex->getMessage());
         }
     }
 
@@ -101,7 +101,7 @@ class TaggeoNews extends Command
 
             return true;
         } catch (Exception $ex) {
-            \Log::error($ex->getMessage()());
+            \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
     }
@@ -191,13 +191,19 @@ class TaggeoNews extends Command
 
             echo "Se crearon las Estados, Municipios y Asentamientos Json\n";
         } catch (Exception $ex) {
-            \Log::error($ex->getMessage()());
+            \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
     }
 
     private function BuscarNota()
     {
-        BuscarPalabraContenido::dispatch();
+        try{
+            BuscarPalabraContenido::dispatch();
+        }
+        catch(Exception $ex){
+            \Log::error($ex->getMessage());
+            throw new Exception($ex->getMessage());
+        }
     }
 }

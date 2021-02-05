@@ -59,11 +59,13 @@ class BuscarPalabraContenido implements ShouldQueue
             unset($this->cacheEstados);
         }
         catch(Exception $ex){
-            var_dump($ex->getMessage());
+            \Log::error($ex->getMessage());
+            throw new Exception($ex->getMessage());
         }
     }
 
-    private function TaggeoNews($news, $json_estado){
+    private function TaggeoNews($news, $json_estado)
+    {
         try{
             ini_set('memory_limit', '-1');
 
@@ -123,11 +125,13 @@ class BuscarPalabraContenido implements ShouldQueue
             return true;
         }
         catch(Exception $ex){
+            \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
     }
 
-    private function CagarEstados(){
+    private function CagarEstados()
+    {
         try{
             ini_set('memory_limit', '-1');
 
@@ -153,6 +157,7 @@ class BuscarPalabraContenido implements ShouldQueue
             }
         }
         catch(Exception $ex){
+            \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
     }
