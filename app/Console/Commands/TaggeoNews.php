@@ -43,9 +43,9 @@ class TaggeoNews extends Command
     {
         try {
             echo "===== Proceso Iniciando ====== \n";
-            //$this->CraerNoticias();
-            //$this->CrearEstadosMunicipios();
-            $this->TaggearNotasEstadoMunicipioAsentamiento();
+            $this->CraerNoticias();
+            $this->CrearEstadosMunicipios();
+            //$this->TaggearNotasEstadoMunicipioAsentamiento();
             echo "===== Proceso Terminado ====== \n";
         } catch (Exception $ex) {
             \Log::error($ex->getMessage());
@@ -110,13 +110,12 @@ class TaggeoNews extends Command
                 unset($obj);
             }
 
+            $count = count($objNews);
+
             $json = json_encode($objNews, JSON_UNESCAPED_UNICODE);
             file_put_contents($archivo, $json);
-
+            echo "Se creo el archivo ".$archivo. " número de notas ". $count."\n";
             unset($objNews);
-
-            echo "Se creo el archivo ".$archivo."\n";
-
             return true;
         } catch (Exception $ex) {
             \Log::error($ex->getMessage());
@@ -133,7 +132,7 @@ class TaggeoNews extends Command
              * Crear Estados, Municipios y Asentamientos
              */
 
-            $estados = \DB::select("SELECT DISTINCT c_estado, d_estado, COUNT(c_municipio) FROM postal_codes WHERE d_asenta != 'México' GROUP BY d_estado ORDER BY c_municipio;");
+            $estados = \DB::select("SELECT DISTINCT c_estado, d_estado, COUNT(c_municipio) as c_municipio FROM postal_codes WHERE d_asenta != 'México' GROUP BY d_estado ORDER BY c_municipio;");
             foreach ($estados as $estado) {
 
                 $objEstados = array();
