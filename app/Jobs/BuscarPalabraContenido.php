@@ -34,8 +34,18 @@ class BuscarPalabraContenido implements ShouldQueue
     public function handle()
     {
         try{
-            $this->CagarEstados();
+            $this->CagarEstadosMemoria();
+            $this->InicioTaggeoNotas();
+            //$this->ActualizarNoticiaTaggeada();
+        }
+        catch(Exception $ex){
+            \Log::error($ex->getMessage());
+            throw new Exception($ex->getMessage());
+        }
+    }
 
+    private function InicioTaggeoNotas(){
+        try{
             echo "===== Iniciando busqueda en el Contenido ".date("H:i:s")." =====\n";
 
             $news = "public/news/news-" . date("Y-m-d") . ".json";
@@ -71,7 +81,7 @@ class BuscarPalabraContenido implements ShouldQueue
 
             foreach($json_estado as $estado){
 
-                $newNews = "public/taggeo/" . $news->id . "-" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->estado)). "-" . date("Y-m-d-H-i-s") . ".json";
+                $newNews = "public/taggeo/" . $news->id . "-contenido-" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->estado)). "-" . date("Y-m-d-H-i-s") . ".json";
 
                 if (file_exists($newNews)) {
                     //unlink($newNews);
@@ -92,22 +102,41 @@ class BuscarPalabraContenido implements ShouldQueue
 
                             if (strpos($cadena_contenido, $cadena_buscada_mun) !== false || strpos($cadena_contenido, $cadena_buscada_est_mun) !== false) {
                                 $news->municipio = $municipio->id;
-                            }
 
-                            $json_asentamientos = $municipio->asentamientos;
+                                $json_asentamientos = $municipio->asentamientos;
 
-                            foreach ($json_asentamientos as $asentamiento) {
+                                foreach ($json_asentamientos as $asentamiento) {
 
-                                $cadena_buscada_asen = strtolower($asentamiento->nom_asentamiento);
-                                $cadena_buscada_asen_min = strtolower($asentamiento->d_asenta);
+                                    $cadena_buscada_asen = strtolower($asentamiento->nom_asentamiento);
+                                    $cadena_buscada_asen_min = strtolower($asentamiento->d_asenta);
 
-                                if (strpos($cadena_contenido, $cadena_buscada_asen) !== false || strpos($cadena_contenido, $cadena_buscada_asen_min) !== false) {
-                                    $news->estado = $estado->id;
-                                    $news->municipio = $municipio->id;
-                                    $news->asentamiento = $asentamiento->id;
-                                    $news->cp = $asentamiento->cp;
-                                    $news->idPostalCode = $asentamiento->idPostalCode;
+                                    if (strpos($cadena_contenido, $cadena_buscada_asen) !== false || strpos($cadena_contenido, $cadena_buscada_asen_min) !== false) {
+                                        $news->estado = $estado->estado;
+                                        $news->municipio = $municipio->municipio;
+                                        $news->asentamiento = $asentamiento->id;
+                                        $news->cp = $asentamiento->cp;
+                                        $news->idPostalCode = $asentamiento->idPostalCode;
+                                    }
                                 }
+                            }
+                            else{
+                                /*
+                                $json_asentamientos = $municipio->asentamientos;
+
+                                foreach ($json_asentamientos as $asentamiento) {
+
+                                    $cadena_buscada_asen = strtolower($asentamiento->nom_asentamiento);
+                                    $cadena_buscada_asen_min = strtolower($asentamiento->d_asenta);
+
+                                    if (strpos($cadena_contenido, $cadena_buscada_asen) !== false || strpos($cadena_contenido, $cadena_buscada_asen_min) !== false) {
+                                        $news->estado = $estado->id;
+                                        $news->municipio = $municipio->id;
+                                        $news->asentamiento = $asentamiento->id;
+                                        $news->cp = $asentamiento->cp;
+                                        $news->idPostalCode = $asentamiento->idPostalCode;
+                                    }
+                                }
+                                */
                             }
                         }
 
@@ -130,7 +159,7 @@ class BuscarPalabraContenido implements ShouldQueue
         }
     }
 
-    private function CagarEstados()
+    private function CagarEstadosMemoria()
     {
         try{
             ini_set('memory_limit', '-1');
@@ -160,5 +189,108 @@ class BuscarPalabraContenido implements ShouldQueue
             \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
+    }
+
+    private function ActualizarNoticiaTaggeada(){
+        try{
+            ini_set('memory_limit', '-1');
+
+            $thefolder = "public/taggeo/";
+            if ($handler = opendir($thefolder)) {
+
+                while (false !== ($archivo = readdir($handler))) {
+
+                    if ($archivo != "." && $archivo != "..") {
+
+                        $datos_news_taggeo = file_get_contents("public/taggeo/" . $archivo);
+                        $json_news_taggeo = json_decode($datos_news_taggeo);
+
+                        $updated_at = date('Y-m-d h:i:s');
+                        $editor = \DB::select("SELECT id FROM admin_users WHERE username = 'newbotleon';");
+
+                        $copoModel = $json_news_taggeo;
+
+                        $url = $archivo . "    => /" . $this->slugify($copoModel->estado) . "/" . $this->slugify($copoModel->municipio) . "/" . $copoModel->cp . "/" . $this->slugify($copoModel->title);
+                        $url_copo = $this->unwantedArray($url);
+
+                        echo $url."\n";
+
+                        unset($datos_estado);
+                        unset($json_estado);
+                    }
+                }
+                closedir($handler);
+            }
+
+
+            /*
+                \DB::table('news')
+                ->where("id", $check[0]->id)
+                ->update(
+                    [
+                        "id_cp" => $this->idPostalCodeAutomatic,
+                        "url" => $url,
+                        "url_copo" => $url_copo,
+                        "id_status_news" => 3,
+                        "id_editor" => $editor[0]->id,
+                        "updated_at" => $this->updated_at
+                    ]
+                );
+
+                \DB::table('news_auto')
+                ->insert(
+                    [
+                        "id_news" => $check[0]->id,
+                        "estado" => $this->states,
+                        "municipio" => $this->municipality,
+                        "asentamiento" => $this->state,
+                        "puntuacion" => $this->score
+                    ]
+                );
+            */
+        }
+        catch(Exception $ex){
+            \Log::error($ex->getMessage());
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    public function slugify($text)
+    {
+        // replace non letter or digits by -
+        $text = preg_replace('~[^\pL\d]+~u', '-', $text);
+
+        // transliterate
+        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+
+        // remove unwanted characters
+        $text = preg_replace('~[^-\w]+~', '', $text);
+
+        // trim
+        $text = trim($text, '-');
+
+        // remove duplicate -
+        $text = preg_replace('~-+~', '-', $text);
+
+        // lowercase
+        $text = strtolower($text);
+
+        if (empty($text)) {
+            return 'n-a';
+        }
+
+        return $text;
+    }
+
+    public function unwantedArray($str)
+    {
+        $unwanted_array = array(
+            'Š' => 'S', 'š' => 's', 'Ž' => 'Z', 'ž' => 'z', 'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A', 'Æ' => 'A', 'Ç' => 'C', 'È' => 'E', 'É' => 'E',
+            'Ê' => 'E', 'Ë' => 'E', 'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I', 'Ñ' => 'N', 'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O', 'Ø' => 'O', 'Ù' => 'U',
+            'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U', 'Ý' => 'Y', 'Þ' => 'B', 'ß' => 'Ss', 'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a', 'æ' => 'a', 'ç' => 'c',
+            'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e', 'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i', 'ð' => 'o', 'ñ' => 'n', 'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o',
+            'ö' => 'o', 'ø' => 'o', 'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ý' => 'y', 'þ' => 'b', 'ÿ' => 'y'
+        );
+        return strtr($str, $unwanted_array);
     }
 }
