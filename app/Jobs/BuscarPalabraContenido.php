@@ -93,7 +93,7 @@ class BuscarPalabraContenido implements ShouldQueue
                     $cadena_estado   = strtolower($estado->estado);
 
                     if (strpos($cadena_contenido, $cadena_estado) !== false) {
-                        $news->estado = $estado->id;
+                        $news->estado = $estado->estado;
                         $json_municipios = isset($estado->municipios) ? $estado->municipios : array();
 
                         foreach ($json_municipios as $municipio) {
@@ -101,7 +101,7 @@ class BuscarPalabraContenido implements ShouldQueue
                             $cadena_buscada_est_mun = $cadena_buscada_mun . ", " . $cadena_estado;
 
                             if (strpos($cadena_contenido, $cadena_buscada_mun) !== false || strpos($cadena_contenido, $cadena_buscada_est_mun) !== false) {
-                                $news->municipio = $municipio->id;
+                                $news->municipio = $municipio->municipio;
 
                                 $json_asentamientos = $municipio->asentamientos;
 

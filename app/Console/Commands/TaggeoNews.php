@@ -2,10 +2,13 @@
 
 namespace App\Console\Commands;
 
+use Exception;
 use App\Jobs\BuscarPalabraContenido;
 use App\Jobs\BuscarPalabraResena;
 use App\Jobs\BuscarPalabraTitulo;
-use Exception;
+use App\Jobs\BuscarPalabraMatriz;
+use App\Jobs\TaggearNota;
+
 use Illuminate\Console\Command;
 
 class TaggeoNews extends Command
@@ -43,9 +46,9 @@ class TaggeoNews extends Command
     {
         try {
             echo "===== Proceso Iniciando ====== \n";
-            $this->CraerNoticias();
-            $this->CrearEstadosMunicipios();
-            //$this->TaggearNotasEstadoMunicipioAsentamiento();
+            //$this->CraerNoticias();
+            //$this->CrearEstadosMunicipios();
+            $this->TaggearNotasEstadoMunicipioAsentamiento();
             echo "===== Proceso Terminado ====== \n";
         } catch (Exception $ex) {
             \Log::error($ex->getMessage());
@@ -71,9 +74,7 @@ class TaggeoNews extends Command
                 //return true;
             }
 
-            $news = \DB::select("SELECT id, title, summary, content FROM news
-            WHERE created_at >= now() - INTERVAL 1 DAY AND id_author != 100
-            AND id_status_news = 2 AND url IS NULL ORDER BY created_at DESC");
+            $news = \DB::select("SELECT id, title, summary, content FROM news WHERE created_at >= now() - INTERVAL 1 DAY AND id_author != 100 AND id_status_news = 2 AND url IS NULL ORDER BY created_at DESC");
 
             $articulos = array(
                 "“", "”", ";", ".", ",", "[…]", '"', "\\", " / ", ":", " a ", " tu ", " y ", " con ", " la ", " este ", " de ", " que ", " se ", " debe ", " una ", " pero ", " los ", " las ", " tus ", " para ", " el ",
@@ -85,13 +86,18 @@ class TaggeoNews extends Command
             );
 
             foreach ($news as $new) {
-                $contenido = strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $new->content)));
-                $contenido = str_replace($articulos, " ", $contenido);
+                if($new->content !== ""){
+                    $contenido = strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $new->content)));
+                    $contenido = str_replace($articulos, " ", $contenido);
+                    $contenido = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $contenido);
+                }
 
                 $resena = strtolower(str_replace(array("\n", "\t", "\\"), "", $new->summary));
                 $resena = str_replace($articulos, " ", $resena);
+                $resena = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $resena);
 
                 $titulo = strtolower(str_replace($articulos, " ", $new->title));
+                $titulo = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $titulo);
 
                 $obj = array(
                     "id" => $new->id,
@@ -106,6 +112,21 @@ class TaggeoNews extends Command
                 );
 
                 array_push($objNews, $obj);
+
+                $newsMatrix = "public/matriz/matriz-".$new->id.".json";
+
+                if (file_exists($newsMatrix)) {
+                    unlink($newsMatrix);
+                }
+
+                $matrix = explode(" ", $contenido);
+                $json = json_encode($matrix, JSON_UNESCAPED_UNICODE);
+                file_put_contents($newsMatrix, $json);
+
+                unset($matrix);
+                unset($json);
+
+                echo "Matrix creada ".$newsMatrix."\n";
 
                 unset($obj);
             }
@@ -214,9 +235,11 @@ class TaggeoNews extends Command
     private function TaggearNotasEstadoMunicipioAsentamiento()
     {
         try{
-            BuscarPalabraTitulo::dispatch();
+            TaggearNota::dispatch();
+            //BuscarPalabraTitulo::dispatch();
             //BuscarPalabraResena::dispatch();
             //BuscarPalabraContenido::dispatch();
+            //BuscarPalabraMatriz::dispatch();
         }
         catch(Exception $ex){
             \Log::error($ex->getMessage());
