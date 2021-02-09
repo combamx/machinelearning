@@ -88,46 +88,26 @@ class TaggeoNews extends Command
             foreach ($news as $new) {
                 if($new->content !== ""){
                     $contenido = strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $new->content)));
-                    $contenido = str_replace($articulos, " ", $contenido);
                     $contenido = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $contenido);
                 }
-
                 $resena = strtolower(str_replace(array("\n", "\t", "\\"), "", $new->summary));
-                $resena = str_replace($articulos, " ", $resena);
                 $resena = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $resena);
-
-                $titulo = strtolower(str_replace($articulos, " ", $new->title));
-                $titulo = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $titulo);
+                $titulo = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $new->title);
 
                 $obj = array(
                     "id" => $new->id,
                     "title" => $titulo,
                     "summary" => $resena,
                     "content" => $contenido,
-                    "estado" => 0,
-                    "municipio" => 0,
-                    "asentamiento" => 0,
+                    "estado" => "",
+                    "municipio" => "",
+                    "asentamiento" => "",
                     "cp" => 0,
-                    "idPostalCode" => 0
+                    "idPostalCode" => 0,
+                    "copo" => ""
                 );
 
                 array_push($objNews, $obj);
-
-                $newsMatrix = "public/matriz/matriz-".$new->id.".json";
-
-                if (file_exists($newsMatrix)) {
-                    unlink($newsMatrix);
-                }
-
-                $matrix = explode(" ", $contenido);
-                $json = json_encode($matrix, JSON_UNESCAPED_UNICODE);
-                file_put_contents($newsMatrix, $json);
-
-                unset($matrix);
-                unset($json);
-
-                echo "Matrix creada ".$newsMatrix."\n";
-
                 unset($obj);
             }
 

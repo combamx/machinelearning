@@ -84,9 +84,7 @@ class TaggearNota implements ShouldQueue
     {
         try{
             ini_set('memory_limit', '-1');
-            $count = 1;
-
-            $taggeoPor = "";
+            $palabrasNo = array("juárez %s more", "%s lópez", "%s more", "miguel %s", "david vicenteño%s", "viral en %s");
 
             foreach($json_estado as $estado){
 
@@ -95,52 +93,17 @@ class TaggearNota implements ShouldQueue
                 $cadena_contenido = strtolower($news->content);
                 $cadena_estado   = strtolower($estado->estado);
 
-                if (strpos($cadena_title, $cadena_estado) !== false || strpos($cadena_resena, $cadena_estado) !== false) {
-                    $newNews = "public/taggeo/" . $news->id . "-tituloresena-" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->estado)). "-" . date("Y-m-d-H-i-s") . ".json";
-
-                    if (file_exists($newNews)) {
-                        unlink($newNews);
-                        //break;
+                foreach($palabrasNo as $item){
+                    $item = sprintf($item, $cadena_estado);
+                    if (strpos($cadena_resena, $item) !== false || strpos($cadena_title, $item) !== false){
+                        break;
+                    }
+                    else if($news->content != "" && strpos($cadena_contenido, $item) !== false){
+                        break;
                     }
 
-                    $news->estado = $estado->estado;
-                    $json_municipios = isset($estado->municipios) ? $estado->municipios : array();
-
-                    foreach ($json_municipios as $municipio) {
-                        $cadena_buscada_mun = strtolower($municipio->municipio);
-                        $cadena_buscada_est_mun = $cadena_buscada_mun . ", " . $cadena_estado;
-
-                        if ( strpos($cadena_title, $cadena_buscada_mun) !== false || strpos($cadena_title, $cadena_buscada_est_mun) !== false ||
-                                strpos($cadena_resena, $cadena_buscada_mun) !== false || strpos($cadena_resena, $cadena_buscada_est_mun) !== false ){
-                            $news->municipio = $municipio->municipio;
-
-                            $json_asentamientos = $municipio->asentamientos;
-
-                            foreach ($json_asentamientos as $asentamiento) {
-
-                                $cadena_buscada_asen = strtolower($asentamiento->nom_asentamiento);
-                                $cadena_buscada_asen_min = strtolower($asentamiento->d_asenta);
-
-                                if (strpos($cadena_title, $cadena_buscada_asen) !== false || strpos($cadena_title, $cadena_buscada_asen_min) !== false) {
-                                    $news->estado = $estado->estado;
-                                    $news->municipio = $municipio->municipio;
-                                    $news->asentamiento = $asentamiento->id;
-                                    $news->cp = $asentamiento->cp;
-                                    $news->idPostalCode = $asentamiento->idPostalCode;
-                                }
-                            }
-                        }
-                    }
-
-                    $json = json_encode($news, JSON_UNESCAPED_UNICODE);
-                    file_put_contents($newNews, $json);
-
-                    echo $newNews."\n";
-                }
-                else if($news->content != ""){
-                    if (strpos($cadena_contenido, $cadena_estado) !== false) {
-
-                        $newNews = "public/taggeo/" . $news->id . "-contenido-" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->estado)). "-" . date("Y-m-d-H-i-s") . ".json";
+                    if (strpos($cadena_title, $cadena_estado) !== false || strpos($cadena_resena, $cadena_estado) !== false) {
+                        $newNews = "public/taggeo/" . $news->id . "-tituloresena-" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->estado)). "-" . date("Y-m-d-H-i-s") . ".json";
 
                         if (file_exists($newNews)) {
                             unlink($newNews);
@@ -154,7 +117,8 @@ class TaggearNota implements ShouldQueue
                             $cadena_buscada_mun = strtolower($municipio->municipio);
                             $cadena_buscada_est_mun = $cadena_buscada_mun . ", " . $cadena_estado;
 
-                            if (strpos($cadena_contenido, $cadena_buscada_mun) !== false || strpos($cadena_contenido, $cadena_buscada_est_mun) !== false) {
+                            if ( strpos($cadena_title, $cadena_buscada_mun) !== false || strpos($cadena_title, $cadena_buscada_est_mun) !== false ||
+                                    strpos($cadena_resena, $cadena_buscada_mun) !== false || strpos($cadena_resena, $cadena_buscada_est_mun) !== false ){
                                 $news->municipio = $municipio->municipio;
 
                                 $json_asentamientos = $municipio->asentamientos;
@@ -164,12 +128,13 @@ class TaggearNota implements ShouldQueue
                                     $cadena_buscada_asen = strtolower($asentamiento->nom_asentamiento);
                                     $cadena_buscada_asen_min = strtolower($asentamiento->d_asenta);
 
-                                    if (strpos($cadena_contenido, $cadena_buscada_asen) !== false || strpos($cadena_contenido, $cadena_buscada_asen_min) !== false) {
-                                        $news->estado = $estado->estado;
-                                        $news->municipio = $municipio->municipio;
-                                        $news->asentamiento = $asentamiento->id;
+                                    if (strpos($cadena_title, $cadena_buscada_asen) !== false || strpos($cadena_title, $cadena_buscada_asen_min) !== false) {
+                                        //$news->estado = $estado->estado;
+                                        //$news->municipio = $municipio->municipio;
+                                        $news->asentamiento = $asentamiento->nom_asentamiento;
                                         $news->cp = $asentamiento->cp;
                                         $news->idPostalCode = $asentamiento->idPostalCode;
+                                        $news->copo = $asentamiento->copo;
                                     }
                                 }
                             }
@@ -179,6 +144,54 @@ class TaggearNota implements ShouldQueue
                         file_put_contents($newNews, $json);
 
                         echo $newNews."\n";
+
+                        break;
+                    }
+                    else if($news->content != ""){
+                        if (strpos($cadena_contenido, $cadena_estado) !== false) {
+                            $newNews = "public/taggeo/" . $news->id . "-contenido-" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->estado)). "-" . date("Y-m-d-H-i-s") . ".json";
+
+                            if (file_exists($newNews)) {
+                                unlink($newNews);
+                                //break;
+                            }
+
+                            $news->estado = $estado->estado;
+                            $json_municipios = isset($estado->municipios) ? $estado->municipios : array();
+
+                            foreach ($json_municipios as $municipio) {
+                                $cadena_buscada_mun = strtolower($municipio->municipio);
+                                $cadena_buscada_est_mun = $cadena_buscada_mun . ", " . $cadena_estado;
+
+                                if (strpos($cadena_contenido, $cadena_buscada_mun) !== false || strpos($cadena_contenido, $cadena_buscada_est_mun) !== false) {
+                                    $news->municipio = $municipio->municipio;
+
+                                    $json_asentamientos = $municipio->asentamientos;
+
+                                    foreach ($json_asentamientos as $asentamiento) {
+
+                                        $cadena_buscada_asen = strtolower($asentamiento->nom_asentamiento);
+                                        $cadena_buscada_asen_min = strtolower($asentamiento->d_asenta);
+
+                                        if (strpos($cadena_contenido, $cadena_buscada_asen) !== false || strpos($cadena_contenido, $cadena_buscada_asen_min) !== false) {
+                                            //$news->estado = $estado->estado;
+                                            //$news->municipio = $municipio->municipio;
+                                            $news->asentamiento = $asentamiento->nom_asentamiento;
+                                            $news->cp = $asentamiento->cp;
+                                            $news->idPostalCode = $asentamiento->idPostalCode;
+                                            $news->copo = $asentamiento->copo;
+                                        }
+                                    }
+                                }
+                            }
+
+                            $json = json_encode($news, JSON_UNESCAPED_UNICODE);
+                            file_put_contents($newNews, $json);
+
+                            echo $newNews."\n";
+
+                            break;
+                        }
                     }
                 }
             }
