@@ -1,7 +1,7 @@
 /storage/logs
 /config/database.php
 /public/taggeo
-/public/json
+/public/estados
 /public/news
 /node_modules
 /public/hot

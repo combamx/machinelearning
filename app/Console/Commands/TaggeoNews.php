@@ -61,6 +61,9 @@ class TaggeoNews extends Command
             ini_set('memory_limit', '-1');
 
             $objNews = array();
+            $contenido = "";
+            $resena = "";
+            $titulo="";
 
             /**
              * Crear Noticias
@@ -140,7 +143,7 @@ class TaggeoNews extends Command
                 $objMunicipios = array();
                 $objAsentamientos = array();
 
-                $archivo = "public/json/" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->d_estado)) . ".json";
+                $archivo = "public/estados/" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->d_estado)) . ".json";
                 if (file_exists($archivo)) unlink($archivo);
 
                 if (!file_exists($archivo)) {
@@ -181,7 +184,6 @@ class TaggeoNews extends Command
                         );
 
                         array_push($objMunicipios, $objM);
-
                         unset($objM);
                     }
 

@@ -15,6 +15,7 @@ class TaggearNota implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private $cacheEstados = array();
+    private $notasTaggeadas = array();
 
     /**
      * Create a new job instance.
@@ -33,48 +34,44 @@ class TaggearNota implements ShouldQueue
      */
     public function handle()
     {
-        try{
+        try {
             $this->CagarEstadosMemoria();
             $this->InicioTaggeoNotas();
             //$this->ActualizarNoticiaTaggeada();
-        }
-        catch(Exception $ex){
+        } catch (Exception $ex) {
             \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
     }
 
-    private function InicioTaggeoNotas(){
-        try{
-            echo "===== Iniciando busqueda en el Titulo ".date("H:i:s")." =====\n";
+    private function InicioTaggeoNotas()
+    {
+        try {
+            echo "===== Iniciando busqueda en el Titulo " . date("H:i:s") . " =====\n";
 
             $news = "public/news/news-" . date("Y-m-d") . ".json";
-
-            echo $news."\n";
+            echo $news . "\n";
 
             if (!file_exists($news)) {
-                echo "El archivo " . $news ." no existe\n";
+                echo "El archivo " . $news . " no existe\n";
             }
 
             $datos_news = file_get_contents($news);
             $json_news = json_decode($datos_news);
-
-            echo "Total de notas a taggear " . count($json_news) ."\n";
-
+            echo "Total de notas a taggear " . count($json_news) . "\n";
             $json_estado = json_decode(json_encode($this->cacheEstados));
 
             foreach ($json_news as $news) {
                 $this->TaggeoNews($news, $json_estado);
             }
 
-            echo "===== Terminando la busqueda en el Titulo ".date("H:i:s")." =====\n";
+            echo "===== Terminando la busqueda en el Titulo " . date("H:i:s") . " =====\n";
 
             unset($datos_news);
             unset($json_news);
             unset($json_estado);
             unset($this->cacheEstados);
-        }
-        catch(Exception $ex){
+        } catch (Exception $ex) {
             \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
@@ -82,28 +79,27 @@ class TaggearNota implements ShouldQueue
 
     private function TaggeoNews($news, $json_estado)
     {
-        try{
+        try {
             ini_set('memory_limit', '-1');
             $palabrasNo = array("juárez %s more", "%s lópez", "%s more", "miguel %s", "david vicenteño%s", "viral en %s");
 
-            foreach($json_estado as $estado){
+            foreach ($json_estado as $estado) {
 
                 $cadena_title = strtolower($news->title);
                 $cadena_resena = strtolower($news->summary);
                 $cadena_contenido = strtolower($news->content);
                 $cadena_estado   = strtolower($estado->estado);
 
-                foreach($palabrasNo as $item){
+                foreach ($palabrasNo as $item) {
                     $item = sprintf($item, $cadena_estado);
-                    if (strpos($cadena_resena, $item) !== false || strpos($cadena_title, $item) !== false){
+                    if (strpos($cadena_resena, $item) !== false || strpos($cadena_title, $item) !== false) {
                         break;
-                    }
-                    else if($news->content != "" && strpos($cadena_contenido, $item) !== false){
+                    } else if ($news->content != "" && strpos($cadena_contenido, $item) !== false) {
                         break;
                     }
 
                     if (strpos($cadena_title, $cadena_estado) !== false || strpos($cadena_resena, $cadena_estado) !== false) {
-                        $newNews = "public/taggeo/" . $news->id . "-tituloresena-" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->estado)). "-" . date("Y-m-d-H-i-s") . ".json";
+                        $newNews = "public/taggeo/" . $news->id . "-". date("Y-m-d") . ".json";
 
                         if (file_exists($newNews)) {
                             unlink($newNews);
@@ -117,8 +113,7 @@ class TaggearNota implements ShouldQueue
                             $cadena_buscada_mun = strtolower($municipio->municipio);
                             $cadena_buscada_est_mun = $cadena_buscada_mun . ", " . $cadena_estado;
 
-                            if ( strpos($cadena_title, $cadena_buscada_mun) !== false || strpos($cadena_title, $cadena_buscada_est_mun) !== false ||
-                                    strpos($cadena_resena, $cadena_buscada_mun) !== false || strpos($cadena_resena, $cadena_buscada_est_mun) !== false ){
+                            if (strpos($cadena_title, $cadena_buscada_mun) !== false || strpos($cadena_title, $cadena_buscada_est_mun) !== false || strpos($cadena_resena, $cadena_buscada_mun) !== false || strpos($cadena_resena, $cadena_buscada_est_mun) !== false) {
                                 $news->municipio = $municipio->municipio;
 
                                 $json_asentamientos = $municipio->asentamientos;
@@ -142,14 +137,13 @@ class TaggearNota implements ShouldQueue
 
                         $json = json_encode($news, JSON_UNESCAPED_UNICODE);
                         file_put_contents($newNews, $json);
-
-                        echo $newNews."\n";
-
+                        array_push($this->notasTaggeadas, $news->id);
+                        echo $newNews . "\n";
                         break;
-                    }
-                    else if($news->content != ""){
+
+                    } else if ($news->content != "") {
                         if (strpos($cadena_contenido, $cadena_estado) !== false) {
-                            $newNews = "public/taggeo/" . $news->id . "-contenido-" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->estado)). "-" . date("Y-m-d-H-i-s") . ".json";
+                            $newNews = "public/taggeo/" . $news->id ."-". date("Y-m-d") . ".json";
 
                             if (file_exists($newNews)) {
                                 unlink($newNews);
@@ -187,9 +181,7 @@ class TaggearNota implements ShouldQueue
 
                             $json = json_encode($news, JSON_UNESCAPED_UNICODE);
                             file_put_contents($newNews, $json);
-
-                            echo $newNews."\n";
-
+                            echo $newNews . "\n";
                             break;
                         }
                     }
@@ -200,8 +192,24 @@ class TaggearNota implements ShouldQueue
             unset($json_estado);
 
             return true;
+        } catch (Exception $ex) {
+            \Log::error($ex->getMessage());
+            throw new Exception($ex->getMessage());
         }
-        catch(Exception $ex){
+    }
+
+    private function NotasYaTaggeadas($news){
+        try{
+            foreach($this->notasTaggeadas as $item){
+                if($item == $news->id){
+                    echo $item ." == ". $news->id."\n";
+                    return true;
+                }
+                else echo $item ." !== ". $news->id."\n";
+            }
+            return false;
+        }
+        catch (Exception $ex){
             \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
@@ -209,22 +217,22 @@ class TaggearNota implements ShouldQueue
 
     private function CagarEstadosMemoria()
     {
-        try{
+        try {
             ini_set('memory_limit', '-1');
 
-            $thefolder = "public/json/";
+            $thefolder = "public/estados/";
             if ($handler = opendir($thefolder)) {
 
                 while (false !== ($archivo = readdir($handler))) {
 
                     if ($archivo != "." && $archivo != "..") {
 
-                        $datos_estado = file_get_contents("public/json/" . $archivo);
+                        $datos_estado = file_get_contents("public/estados/" . $archivo);
                         $json_estado = json_decode($datos_estado, true);
 
                         array_push($this->cacheEstados, $json_estado[0]);
 
-                        echo "Se cargo el archivo " . $archivo." a memoria\n";
+                        echo "Se cargo el archivo " . $archivo . " a memoria\n";
 
                         unset($datos_estado);
                         unset($json_estado);
@@ -232,15 +240,15 @@ class TaggearNota implements ShouldQueue
                 }
                 closedir($handler);
             }
-        }
-        catch(Exception $ex){
+        } catch (Exception $ex) {
             \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
     }
 
-    private function ActualizarNoticiaTaggeada(){
-        try{
+    private function ActualizarNoticiaTaggeada()
+    {
+        try {
             ini_set('memory_limit', '-1');
 
             $thefolder = "public/taggeo/";
@@ -261,7 +269,7 @@ class TaggearNota implements ShouldQueue
                         $url = $archivo . "    => /" . $this->slugify($copoModel->estado) . "/" . $this->slugify($copoModel->municipio) . "/" . $copoModel->cp . "/" . $this->slugify($copoModel->title);
                         $url_copo = $this->unwantedArray($url);
 
-                        echo $url."\n";
+                        echo $url . "\n";
 
                         unset($datos_estado);
                         unset($json_estado);
@@ -296,8 +304,7 @@ class TaggearNota implements ShouldQueue
                     ]
                 );
             */
-        }
-        catch(Exception $ex){
+        } catch (Exception $ex) {
             \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }

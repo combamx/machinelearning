@@ -164,14 +164,14 @@ class BuscarPalabraContenido implements ShouldQueue
         try{
             ini_set('memory_limit', '-1');
 
-            $thefolder = "public/json/";
+            $thefolder = "public/estados/";
             if ($handler = opendir($thefolder)) {
 
                 while (false !== ($archivo = readdir($handler))) {
 
                     if ($archivo != "." && $archivo != "..") {
 
-                        $datos_estado = file_get_contents("public/json/" . $archivo);
+                        $datos_estado = file_get_contents("public/estados/" . $archivo);
                         $json_estado = json_decode($datos_estado, true);
 
                         array_push($this->cacheEstados, $json_estado[0]);
