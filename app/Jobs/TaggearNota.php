@@ -16,6 +16,7 @@ class TaggearNota implements ShouldQueue
 
     private $cacheEstados = array();
     private $notasTaggeadas = array();
+    private $notas = null;
 
     /**
      * Create a new job instance.
@@ -54,7 +55,18 @@ class TaggearNota implements ShouldQueue
 
             if (!file_exists($news)) {
                 echo "El archivo " . $news . " no existe\n";
+                return false;
             }
+
+            $directorio = "public/taggeo/" . date("Y") . "/" . date("m") . "/" . date("d") . "/";
+
+            if (!file_exists($directorio)) {
+                mkdir($directorio, 0777, true);
+                chmod($directorio, 0777);
+            }
+
+            if (file_exists($directorio . "notaTaggeada.txt")) unlink($directorio . "notaTaggeada.txt");
+            if (file_exists($directorio . "no-notaTaggeada.txt")) unlink($directorio . "no-notaTaggeada.txt");
 
             $datos_news = file_get_contents($news);
             $json_news = json_decode($datos_news);
@@ -81,7 +93,11 @@ class TaggearNota implements ShouldQueue
     {
         try {
             ini_set('memory_limit', '-1');
+
             $palabrasNo = array("juárez %s more", "%s lópez", "%s more", "miguel %s", "david vicenteño%s", "viral en %s");
+            $directorio = "public/taggeo/" . date("Y") . "/" . date("m") . "/" . date("d") . "/";
+
+            $this->notas = $news;
 
             foreach ($json_estado as $estado) {
 
@@ -99,7 +115,7 @@ class TaggearNota implements ShouldQueue
                     }
 
                     if (strpos($cadena_title, $cadena_estado) !== false || strpos($cadena_resena, $cadena_estado) !== false) {
-                        $newNews = "public/taggeo/" . $news->id . "-". date("Y-m-d") . ".json";
+                        $newNews = $directorio . $news->id . ".json";
 
                         if (file_exists($newNews)) {
                             unlink($newNews);
@@ -139,11 +155,17 @@ class TaggearNota implements ShouldQueue
                         file_put_contents($newNews, $json);
                         array_push($this->notasTaggeadas, $news->id);
                         echo $newNews . "\n";
-                        break;
 
+                        $dato = $news->id . "|" . $news->estado . "|" . $news->municipio . "|" . $news->asentamiento . "|" . $news->cp . "|" . $news->idPostalCode . "|" . $news->copo . "|titulo o reseña\n";
+
+                        $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
+                        fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
+                        fclose($fh);
+
+                        break;
                     } else if ($news->content != "") {
                         if (strpos($cadena_contenido, $cadena_estado) !== false) {
-                            $newNews = "public/taggeo/" . $news->id ."-". date("Y-m-d") . ".json";
+                            $newNews = $directorio . $news->id . ".json";
 
                             if (file_exists($newNews)) {
                                 unlink($newNews);
@@ -182,7 +204,140 @@ class TaggearNota implements ShouldQueue
                             $json = json_encode($news, JSON_UNESCAPED_UNICODE);
                             file_put_contents($newNews, $json);
                             echo $newNews . "\n";
+
+                            $dato = $news->id . "|" . $news->estado . "|" . $news->municipio . "|" . $news->asentamiento . "|" . $news->cp . "|" . $news->idPostalCode . "|" . $news->copo . "|contenido\n";
+
+                            $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
+                            fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
+                            fclose($fh);
+
                             break;
+                        } else {
+                            // Buscar por matriz de palabras en cdmx
+                            $cdmx = array("ciudad de méxico", "tren maya", "dos bocas", "santa lucía", "amlo", "andrés manuel lópez obrador", "impulsan gasolina y gas", "enfermedades cardiovasculares", "presidente de méxico");
+                            $cdmxIztacalco = array("iztacalco");
+                            $guerrero = array("chilpancingo");
+                            $jalisco = array("zapopan");
+
+                            $array_contenido = explode(" ", $cadena_contenido);
+
+                            foreach($cdmx as $item){
+                                $matches = array_filter($array_contenido, function ($var) use ($item) {
+                                    $this->notas->estado = "Ciudad de México";
+                                    $this->notas->municipio = "Cuauhtémoc";
+                                    $this->notas->asentamiento = "Centro (Área 1)";
+                                    $this->notas->cp = 6000;
+                                    $this->notas->idPostalCode = 506;
+                                    $this->notas->copo = "Centro CDMX";
+
+                                    return preg_match("/$item/i", $var);
+                                });
+
+                                if ($matches) { // se ha encontrado el termino
+                                    $newNews = $directorio . $this->notas->id . ".json";
+                                    $json = json_encode($this->notas, JSON_UNESCAPED_UNICODE);
+                                    file_put_contents($newNews, $json);
+                                    echo $newNews . "\n";
+
+                                    $dato = $this->notas->id . "|" . $this->notas->estado . "|" . $this->notas->municipio . "|" . $this->notas->asentamiento . "|" . $this->notas->cp . "|" . $this->notas->idPostalCode . "|" . $this->notas->copo . "|cdmx\n";
+
+                                    $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
+                                    fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
+                                    fclose($fh);
+                                    break;
+                                } else { // El termino no se ha encontrado
+                                }
+                            }
+
+                            foreach($cdmxIztacalco as $item){
+                                $matches = array_filter($array_contenido, function ($var) use ($item) {
+                                    $this->notas->estado = "Ciudad de México";
+                                    $this->notas->municipio = "Iztacalco";
+                                    $this->notas->asentamiento = "";
+                                    $this->notas->cp = 8030;
+                                    $this->notas->idPostalCode = 0;
+                                    $this->notas->copo = "";
+
+                                    return preg_match("/$item/i", $var);
+                                });
+
+                                if ($matches) { // se ha encontrado el termino
+                                    $newNews = $directorio . $this->notas->id . ".json";
+                                    $json = json_encode($this->notas, JSON_UNESCAPED_UNICODE);
+                                    file_put_contents($newNews, $json);
+                                    echo $newNews . "\n";
+
+                                    $dato = $this->notas->id . "|" . $this->notas->estado . "|" . $this->notas->municipio . "|" . $this->notas->asentamiento . "|" . $this->notas->cp . "|" . $this->notas->idPostalCode . "|" . $this->notas->copo . "|iztacalco\n";
+
+                                    $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
+                                    fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
+                                    fclose($fh);
+                                    break;
+                                } else { // El termino no se ha encontrado
+                                }
+                            }
+
+                            foreach($guerrero as $item){
+                                $matches = array_filter($array_contenido, function ($var) use ($item) {
+                                    $this->notas->estado = "Guerrero";
+                                    $this->notas->municipio = "Chilpancingo de los Bravo";
+                                    $this->notas->asentamiento = "Puesta del Sol";
+                                    $this->notas->cp = 39425;
+                                    $this->notas->idPostalCode = 46919;
+                                    $this->notas->copo = "";
+
+                                    return preg_match("/$item/i", $var);
+                                });
+
+                                if ($matches) { // se ha encontrado el termino
+                                    $newNews = $directorio . $this->notas->id . ".json";
+                                    $json = json_encode($this->notas, JSON_UNESCAPED_UNICODE);
+                                    file_put_contents($newNews, $json);
+                                    echo $newNews . "\n";
+
+                                    $dato = $this->notas->id . "|" . $this->notas->estado . "|" . $this->notas->municipio . "|" . $this->notas->asentamiento . "|" . $this->notas->cp . "|" . $this->notas->idPostalCode . "|" . $this->notas->copo . "|guerrero\n";
+
+                                    $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
+                                    fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
+                                    fclose($fh);
+                                    break;
+                                } else { // El termino no se ha encontrado
+                                }
+                            }
+
+                            foreach($jalisco as $item){
+                                $matches = array_filter($array_contenido, function ($var) use ($item) {
+                                    $this->notas->estado = "Jalisco";
+                                    $this->notas->municipio = "Zapopan";
+                                    $this->notas->asentamiento = "";
+                                    $this->notas->cp = 45118;
+                                    $this->notas->idPostalCode = 0;
+                                    $this->notas->copo = "";
+
+                                    return preg_match("/$item/i", $var);
+                                });
+
+                                if ($matches) { // se ha encontrado el termino
+                                    $newNews = $directorio . $this->notas->id . ".json";
+                                    $json = json_encode($this->notas, JSON_UNESCAPED_UNICODE);
+                                    file_put_contents($newNews, $json);
+                                    echo $newNews . "\n";
+
+                                    $dato = $this->notas->id . "|" . $this->notas->estado . "|" . $this->notas->municipio . "|" . $this->notas->asentamiento . "|" . $this->notas->cp . "|" . $this->notas->idPostalCode . "|" . $this->notas->copo . "|jalisco\n";
+
+                                    $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
+                                    fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
+                                    fclose($fh);
+                                    break;
+                                } else { // El termino no se ha encontrado
+                                }
+                            }
+
+                            $dato = $news->id ."\n";
+
+                            $fh = fopen($directorio . "no-NotaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
+                            fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
+                            fclose($fh);
                         }
                     }
                 }
@@ -193,23 +348,22 @@ class TaggearNota implements ShouldQueue
 
             return true;
         } catch (Exception $ex) {
-            \Log::error($ex->getMessage());
+            \Log::error($ex);
             throw new Exception($ex->getMessage());
         }
     }
 
-    private function NotasYaTaggeadas($news){
-        try{
-            foreach($this->notasTaggeadas as $item){
-                if($item == $news->id){
-                    echo $item ." == ". $news->id."\n";
+    private function NotasYaTaggeadas($news)
+    {
+        try {
+            foreach ($this->notasTaggeadas as $item) {
+                if ($item == $news->id) {
+                    echo $item . " == " . $news->id . "\n";
                     return true;
-                }
-                else echo $item ." !== ". $news->id."\n";
+                } else echo $item . " !== " . $news->id . "\n";
             }
             return false;
-        }
-        catch (Exception $ex){
+        } catch (Exception $ex) {
             \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }

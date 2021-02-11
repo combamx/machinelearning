@@ -8,6 +8,7 @@ use App\Jobs\BuscarPalabraResena;
 use App\Jobs\BuscarPalabraTitulo;
 use App\Jobs\BuscarPalabraMatriz;
 use App\Jobs\TaggearNota;
+use App\Jobs\TaggeoNoticiasAsentamiento;
 
 use Illuminate\Console\Command;
 
@@ -46,9 +47,9 @@ class TaggeoNews extends Command
     {
         try {
             echo "===== Proceso Iniciando ====== \n";
-            //$this->CraerNoticias();
-            //$this->CrearEstadosMunicipios();
-            $this->TaggearNotasEstadoMunicipioAsentamiento();
+            // $this->CraerNoticias();
+            // $this->CrearEstadosMunicipiosUrl();
+            $this->TaggearNotasPorUrls();
             echo "===== Proceso Terminado ====== \n";
         } catch (Exception $ex) {
             \Log::error($ex->getMessage());
@@ -63,7 +64,7 @@ class TaggeoNews extends Command
             $objNews = array();
             $contenido = "";
             $resena = "";
-            $titulo="";
+            $titulo = "";
 
             /**
              * Crear Noticias
@@ -72,12 +73,12 @@ class TaggeoNews extends Command
             $archivo = "public/news/news-" . date("Y-m-d") . ".json";
             if (file_exists($archivo)) {
                 unlink($archivo);
-                echo "Se elimino el archivo ".$archivo."\n";
+                echo "Se elimino el archivo " . $archivo . "\n";
                 //echo "El archivo ".$archivo." ya existe\n";
                 //return true;
             }
 
-            $news = \DB::select("SELECT id, title, summary, content FROM news WHERE created_at >= now() - INTERVAL 1 DAY AND id_author != 100 AND id_status_news = 2 AND url IS NULL ORDER BY created_at DESC");
+            $news = \DB::select("SELECT id, title, summary, content FROM news WHERE created_at >= now() - INTERVAL 1 DAY AND id_author != 100 AND id_status_news = 2 AND url IS NULL ORDER BY id;");
 
             $articulos = array(
                 "“", "”", ";", ".", ",", "[…]", '"', "\\", " / ", ":", " a ", " tu ", " y ", " con ", " la ", " este ", " de ", " que ", " se ", " debe ", " una ", " pero ", " los ", " las ", " tus ", " para ", " el ",
@@ -89,7 +90,7 @@ class TaggeoNews extends Command
             );
 
             foreach ($news as $new) {
-                if($new->content !== ""){
+                if ($new->content !== "") {
                     $contenido = strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $new->content)));
                     $contenido = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $contenido);
                 }
@@ -118,7 +119,7 @@ class TaggeoNews extends Command
 
             $json = json_encode($objNews, JSON_UNESCAPED_UNICODE);
             file_put_contents($archivo, $json);
-            echo "Se creo el archivo ".$archivo. " número de notas ". $count."\n";
+            echo "Se creo el archivo " . $archivo . " número de notas " . $count . "\n";
             unset($objNews);
             return true;
         } catch (Exception $ex) {
@@ -131,6 +132,10 @@ class TaggeoNews extends Command
     {
         try {
             ini_set('memory_limit', '-1');
+
+            $estadoUrl = "";
+            $municipioUrl = "";
+            $asentamientoUrl = "";
 
             /**
              * Crear Estados, Municipios y Asentamientos
@@ -152,11 +157,13 @@ class TaggeoNews extends Command
 
                     foreach ($municipios as $municipio) {
 
-                        $query = sprintf("SELECT DISTINCT c.id_asenta_cpcons, c.d_tipo_asenta, c.d_asenta, c.d_codigo, c.id, CONCAT(d_tipo_asenta, ' ', d_asenta) as nom_asentamiento, IFNULL(s.title, '') as copo
-                                            FROM postal_codes c
-                                                LEFT JOIN copos s ON (s.id = c.c_municipio)
+                        $query = sprintf("SELECT DISTINCT d_estado, d_municipio, c.id_asenta_cpcons, c.d_tipo_asenta, c.d_asenta, c.d_codigo, c.id,
+                                            CONCAT(d_tipo_asenta, ' ', d_asenta) as nom_asentamiento, IFNULL(s.title, '') as copo
+                                            FROM copopro.postal_codes c
+                                                LEFT JOIN copos_postalcodes p ON (p.postal_code_id = c.d_codigo)
+                                                LEFT JOIN copos s ON (s.id = p.copo_id)
                                             WHERE c.d_asenta != 'México' AND c.c_estado = %s AND c.c_municipio = %s
-                                            GROUP BY c.d_asenta ORDER BY c.d_asenta;", $estado->c_estado, $municipio->c_municipio);
+                                            GROUP BY c.d_asenta ORDER BY c.d_estado;", $estado->c_estado, $municipio->c_municipio);
 
                         $asentamientos = \DB::select($query);
                         $objA = array();
@@ -171,8 +178,8 @@ class TaggeoNews extends Command
                                 "copo" => $asentamiento->copo
                             );
 
+                            $asentamientoUrl = $asentamiento->nom_asentamiento . "|" . $asentamiento->d_codigo . "|" . $asentamiento->copo;
                             array_push($objAsentamientos, $objA);
-
                             unset($objA);
                         }
 
@@ -183,16 +190,22 @@ class TaggeoNews extends Command
                             "asentamientos" => $objAsentamientos
                         );
 
+                        $municipioUrl = $municipio->d_municipio;
                         array_push($objMunicipios, $objM);
                         unset($objM);
                     }
+
+                    $estadoUrl = $estado->d_estado . "|" . $municipioUrl . "|" . $asentamientoUrl;
 
                     $obj = array(
                         "id" => $estado->c_estado,
                         "estado" => $estado->d_estado,
                         "cp" => 0,
+                        "url" => $estadoUrl,
                         "municipios" => $objMunicipios
                     );
+
+                    $estadoUrl = $estado->d_estado;
 
                     array_push($objEstados, $obj);
                     unset($obj);
@@ -201,10 +214,74 @@ class TaggeoNews extends Command
 
                     $json = json_encode($objEstados, JSON_UNESCAPED_UNICODE);
                     file_put_contents($archivo, $json);
+                } else {
+                    echo "El archivo " . $archivo . " ya existe\n";
                 }
-                else{
-                    echo "El archivo " . $archivo ." ya existe\n";
+            }
+
+            echo "Se crearon las Estados, Municipios y Asentamientos Json\n";
+        } catch (Exception $ex) {
+            \Log::error($ex->getMessage());
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    private function CrearEstadosMunicipiosUrl()
+    {
+        try {
+            ini_set('memory_limit', '-1');
+
+            $objAsentamientos = array();
+            $objMunicipios = array();
+
+            /**
+             * Crear Estados, Municipios y Asentamientos
+             */
+
+            $estados = \DB::select("SELECT c.c_estado, c.d_estado FROM copopro.postal_codes c WHERE c.d_asenta != 'México' GROUP BY c.c_estado,c.d_estado ORDER BY c.d_estado;");
+
+            foreach ($estados as $estado) {
+
+                $query = sprintf("SELECT DISTINCT
+                                    c.id,
+                                    c.c_estado,
+                                    c.d_estado,
+                                    c.d_municipio,
+                                    CONCAT(c.d_tipo_asenta, ' ', c.d_asenta) as nom_asentamiento,
+                                    c.d_asenta,
+                                    c.d_codigo,
+                                    IFNULL(s.title, '') as copo
+                                FROM copopro.postal_codes c
+                                    LEFT JOIN copopro.copos_postalcodes p ON (p.postal_code_id = c.d_codigo)
+                                    LEFT JOIN copopro.copos s ON (s.id = p.copo_id)
+                                WHERE c.d_asenta != 'México' AND c.c_estado  = %s
+                                ORDER BY c.d_estado, c.d_municipio, nom_asentamiento;", $estado->c_estado);
+
+                $municipios = \DB::select($query);
+
+                foreach ($municipios as $municipio) {
+                    $objA = array(
+                        "url" => strtolower($municipio->d_estado . "|" . $municipio->d_municipio . "|" . str_replace(array("(", ")", "[", "]", "{", "}", "'", '"', ".", ";", ":", "/", "\\", "?", "*", "!", "&", "%", "$", "#", "¡", "¿"), "", $municipio->nom_asentamiento)  . "|" . $municipio->d_codigo . "|" . $municipio->copo),
+                    );
+
+                    array_push($objMunicipios, $objA);
+                    unset($objA);
                 }
+
+                $archivo = "public/estados/" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->d_estado)) . ".json";
+
+                array_push($objAsentamientos, $objMunicipios);
+                $objMunicipios  = array();
+
+                if (file_exists($archivo)) unlink($archivo);
+
+                $json = json_encode($objAsentamientos, JSON_UNESCAPED_UNICODE);
+                file_put_contents($archivo, $json);
+
+                echo "Estado " . $archivo . " agregado al array con sus municipios y asentamientos\n";
+
+                $objAsentamientos  = array();
+                $objMunicipios  = array();
             }
 
             echo "Se crearon las Estados, Municipios y Asentamientos Json\n";
@@ -216,17 +293,25 @@ class TaggeoNews extends Command
 
     private function TaggearNotasEstadoMunicipioAsentamiento()
     {
-        try{
+        try {
             TaggearNota::dispatch();
-            //BuscarPalabraTitulo::dispatch();
-            //BuscarPalabraResena::dispatch();
-            //BuscarPalabraContenido::dispatch();
-            //BuscarPalabraMatriz::dispatch();
-        }
-        catch(Exception $ex){
+            BuscarPalabraTitulo::dispatch();
+            BuscarPalabraResena::dispatch();
+            BuscarPalabraContenido::dispatch();
+            BuscarPalabraMatriz::dispatch();
+        } catch (Exception $ex) {
             \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
     }
 
+    private function TaggearNotasPorUrls()
+    {
+        try {
+            TaggeoNoticiasAsentamiento::dispatch();
+        } catch (Exception $ex) {
+            \Log::error($ex->getMessage());
+            throw new Exception($ex->getMessage());
+        }
+    }
 }
