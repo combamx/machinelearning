@@ -75,7 +75,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
             echo "Total de notas a taggear " . count($json_news) . "\n";
 
             foreach ($json_news as $news) {
-                echo $count++ . " .- ". $news->id."-noticia ***** " . strtolower($news->title) . " ***** para ser taggeada.\n";
+                echo $count++ . " .- " . $news->id . "-noticia ***** " . strtolower($news->title) . " ***** para ser taggeada.\n";
                 $this->TaggeoNews($news);
             }
 
@@ -97,6 +97,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
             $directorio = "public/taggeo/" . date("Y") . "/" . date("m") . "/" . date("d") . "/";
             $splitEstado = array();
             $count = 1;
+            $dondeTaggeo = "";
 
             $json_estado = json_decode(json_encode($this->cacheEstados));
 
@@ -113,18 +114,25 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                         //return preg_match("/$a/i", $var);
                     });
 
-                    if ($matches) { // se ha encontrado el termino
+                    if ($matches) {
 
-                        $newNews = $directorio . $news->id . ".json";
-                        $dato = $news->id . "|" . $splitEstado[0] . "|0|0|0\n";
-                        $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
-                        file_put_contents($newNews, $json);
+                        $a = $splitEstado[1]; // MUNICIPIO
+                        $matches = array_filter($array_contenido, function ($var) use ($a) {
+                            return stristr($var, $a);
+                            //return preg_match("/$a/i", $var);
+                        });
 
-                        echo "------".$count++ . " .-  " . $newNews . " => " . $dato;
+                        if ($matches) {
 
-                        $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
-                        fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
-                        fclose($fh);
+                            $a = $splitEstado[2]; // ASENTAMIENTO
+                            $matches = array_filter($array_contenido, function ($var) use ($a) {
+                                return stristr($var, $a);
+                                //return preg_match("/$a/i", $var);
+                            });
+
+                            if ($matches) {
+                            }
+                        }
                     } else { // El termino no se ha encontrado
 
                         $a = $splitEstado[1]; // MUNICIPIO
@@ -136,16 +144,14 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
 
                         if ($matches) { // se ha encontrado el termino
 
-                            $newNews = $directorio . $news->id . ".json";
-                            $dato = $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|0|0\n";
-                            $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
-                            file_put_contents($newNews, $json);
+                            $a = $splitEstado[2]; // ASENTAMIENTO
+                            $matches = array_filter($array_contenido, function ($var) use ($a) {
+                                return stristr($var, $a);
+                                //return preg_match("/$a/i", $var);
+                            });
 
-                            echo "------".$count++ . " .-  " . $newNews . $dato;
-
-                            $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
-                            fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
-                            fclose($fh);
+                            if ($matches) {
+                            }
                         } else {
 
                             $a = $splitEstado[2]; // ASENTAMIENTO
@@ -162,11 +168,12 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
                                 file_put_contents($newNews, $json);
 
-                                echo "------".$count++ . " .-  " . $newNews . " => " . $dato;
+                                echo "------" . $count++ . " .-  " . $newNews . " => " . $dato;
 
                                 $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
                                 fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
                                 fclose($fh);
+                                break;
                             } else {
 
                                 $array_contenido = explode(" ", strtolower($news->summary)); // BUSCAR POR SUMMARY
@@ -178,16 +185,24 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 });
 
                                 if ($matches) { // se ha encontrado el termino
-                                    $newNews = $directorio . $news->id . ".json";
-                                    $dato = $news->id . "|" . $splitEstado[0] . "|0|0|0\n";
-                                    $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
-                                    file_put_contents($newNews, $json);
 
-                                    echo "------".$count++ . " .-  " . $newNews . " => " . $dato;
+                                    $a = $splitEstado[1]; // MUNICIPIO
+                                    $matches = array_filter($array_contenido, function ($var) use ($a) {
+                                        return stristr($var, $a);
+                                        //return preg_match("/$a/i", $var);
+                                    });
 
-                                    $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
-                                    fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
-                                    fclose($fh);
+                                    if ($matches) {
+
+                                        $a = $splitEstado[2]; // ASENTAMIENTO
+                                        $matches = array_filter($array_contenido, function ($var) use ($a) {
+                                            return stristr($var, $a);
+                                            //return preg_match("/$a/i", $var);
+                                        });
+
+                                        if ($matches) {
+                                        }
+                                    }
                                 } else {
                                     $a = $splitEstado[1]; // MUNICIPIO
                                     $matches = array_filter($array_contenido, function ($var) use ($a) {
@@ -196,16 +211,15 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                     });
 
                                     if ($matches) { // se ha encontrado el termino
-                                        $newNews = $directorio . $news->id . ".json";
-                                        $dato = $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|0|0\n";
-                                        $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
-                                        file_put_contents($newNews, $json);
 
-                                        echo "------".$count++ . " .-  " . $newNews . " => " . $dato;
+                                        $a = $splitEstado[2]; // ASENTAMIENTO
+                                        $matches = array_filter($array_contenido, function ($var) use ($a) {
+                                            return stristr($var, $a);
+                                            //return preg_match("/$a/i", $var);
+                                        });
 
-                                        $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
-                                        fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
-                                        fclose($fh);
+                                        if ($matches) {
+                                        }
                                     } else {
                                         $a = $splitEstado[2]; // ASENTAMIENTO
                                         $matches = array_filter($array_contenido, function ($var) use ($a) {
@@ -219,13 +233,16 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                             $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
                                             file_put_contents($newNews, $json);
 
-                                            echo "------".$count++ . " .-  " . $newNews . "\n";
+                                            echo "------" . $count++ . " .-  " . $newNews . "\n";
 
                                             $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
                                             fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
                                             fclose($fh);
+                                            break;
                                         } else {
+
                                             if ($news->content != "") {
+
                                                 $array_contenido = explode(" ", strtolower($news->content)); // BUSCAR EN CONTENIDO
 
                                                 $a = $splitEstado[0]; // ESTADO
@@ -236,16 +253,23 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
 
                                                 if ($matches) { // se ha encontrado el termino
 
-                                                    $newNews = $directorio . $news->id . ".json";
-                                                    $dato = $news->id . "|" . $splitEstado[0] . "|0|0|0\n";
-                                                    $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
-                                                    file_put_contents($newNews, $json);
+                                                    $a = $splitEstado[1]; // MUNICIPIO
+                                                    $matches = array_filter($array_contenido, function ($var) use ($a) {
+                                                        return stristr($var, $a);
+                                                        //return preg_match("/$a/i", $var);
+                                                    });
 
-                                                    echo "------".$count++ . " .-  " . $newNews . " => " . $dato;
+                                                    if ($matches) {
 
-                                                    $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
-                                                    fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
-                                                    fclose($fh);
+                                                        $a = $splitEstado[2]; // ASENTAMIENTO
+                                                        $matches = array_filter($array_contenido, function ($var) use ($a) {
+                                                            return stristr($var, $a);
+                                                            //return preg_match("/$a/i", $var);
+                                                        });
+
+                                                        if ($matches) {
+                                                        }
+                                                    }
                                                 } else {
                                                     $a = $splitEstado[1]; // MUNICIPIO
                                                     $matches = array_filter($array_contenido, function ($var) use ($a) {
@@ -255,16 +279,14 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
 
                                                     if ($matches) { // se ha encontrado el termino
 
-                                                        $newNews = $directorio . $news->id . ".json";
-                                                        $dato = $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|0|0\n";
-                                                        $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
-                                                        file_put_contents($newNews, $json);
+                                                        $a = $splitEstado[2]; // ASENTAMIENTO
+                                                        $matches = array_filter($array_contenido, function ($var) use ($a) {
+                                                            return stristr($var, $a);
+                                                            //return preg_match("/$a/i", $var);
+                                                        });
 
-                                                        echo "------".$count++ . " .-  " . $newNews . " => " . $dato;
-
-                                                        $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
-                                                        fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
-                                                        fclose($fh);
+                                                        if ($matches) {
+                                                        }
                                                     } else {
                                                         $a = $splitEstado[2]; // ASENTAMIENTO
                                                         $matches = array_filter($array_contenido, function ($var) use ($a) {
@@ -278,17 +300,19 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                             $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
                                                             file_put_contents($newNews, $json);
 
-                                                            echo "------".$count++ . " .-  " . $newNews . " => " . $dato;
+                                                            echo "------" . $count++ . " .-  " . $newNews . " => " . $dato;
 
                                                             $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
                                                             fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
                                                             fclose($fh);
+                                                            break;
                                                         } else {
                                                             $dato = $news->id . "\n";
 
                                                             $fh = fopen($directorio . "no-NotaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
                                                             fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
                                                             fclose($fh);
+                                                            break;
                                                         }
                                                     }
                                                 }
@@ -298,6 +322,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                 $fh = fopen($directorio . "no-NotaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
                                                 fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
                                                 fclose($fh);
+                                                break;
                                             }
                                         }
                                     }
