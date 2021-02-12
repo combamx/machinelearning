@@ -65,8 +65,10 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                 chmod($directorio, 0777);
             }
 
-            if (file_exists($directorio . "notaTaggeada.txt")) unlink($directorio . "notaTaggeada.txt");
-            if (file_exists($directorio . "no-notaTaggeada.txt")) unlink($directorio . "no-notaTaggeada.txt");
+            if (file_exists($directorio . "ninguno.txt")) unlink($directorio . "ninguno.txt");
+            if (file_exists($directorio . "taggeo-estado.txt")) unlink($directorio . "taggeo-estado.txt");
+            if (file_exists($directorio . "taggeo-municipio.txt")) unlink($directorio . "taggeo-municipio.txt");
+            if (file_exists($directorio . "taggeo-asentamiento.txt")) unlink($directorio . "taggeo-asentamiento.txt");
 
             $datos_news = file_get_contents($news);
             $json_news = json_decode($datos_news);
@@ -75,7 +77,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
             echo "Total de notas a taggear " . count($json_news) . "\n";
 
             foreach ($json_news as $news) {
-                echo $count++ . " .- " . $news->id . "-noticia ***** " . strtolower($news->title) . " ***** para ser taggeada.\n";
+                echo $count++ . " .- " . $news->id . " - " . strtolower($news->title) . "\n";
                 $this->TaggeoNews($news);
             }
 
@@ -96,232 +98,436 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
 
             $directorio = "public/taggeo/" . date("Y") . "/" . date("m") . "/" . date("d") . "/";
             $splitEstado = array();
-            $count = 1;
-            $dondeTaggeo = "";
-
             $json_estado = json_decode(json_encode($this->cacheEstados));
 
             foreach ($json_estado as $estado) {
-
                 foreach ($estado as $item) {
+                    $dondeTaggeo = "";
+                    $puntaje = 0;
                     $splitEstado = explode("|", $item->url);
 
+                    //*********** ESTADO TITULO ***********************/
+                    $a = $splitEstado[0]; // ESTADO
                     $array_contenido = explode(" ", strtolower($news->title)); // BUSCAR EN TITLE
 
-                    $a = $splitEstado[0]; // ESTADO
                     $matches = array_filter($array_contenido, function ($var) use ($a) {
-                        return stristr($var, $a);
-                        //return preg_match("/$a/i", $var);
+                        //return stristr($var, $a);
+                        return preg_match("/$a/i", $var);
                     });
 
                     if ($matches) {
+                        $puntaje = 1;
+                        $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
-                        $a = $splitEstado[1]; // MUNICIPIO
+                        //*********** MUNICIPIO TITULO ***********************/
+                        $a = $splitEstado[1];
                         $matches = array_filter($array_contenido, function ($var) use ($a) {
                             return stristr($var, $a);
                             //return preg_match("/$a/i", $var);
                         });
 
                         if ($matches) {
+                            $puntaje = 2;
+                            $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
-                            $a = $splitEstado[2]; // ASENTAMIENTO
+                            //*********** ASENTAMIENTO TITULO ***********************/
+                            $a = $splitEstado[2];
                             $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                return stristr($var, $a);
-                                //return preg_match("/$a/i", $var);
+                                //return stristr($var, $a);
+                                return preg_match("/$a/i", $var);
                             });
 
                             if ($matches) {
+                                $puntaje = 3;
+                                $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                             }
+                            //*********** ASENTAMIENTO TITULO ***********************/
                         }
-                    } else { // El termino no se ha encontrado
+                        //*********** MUNICIPIO TITULO ***********************/
 
-                        $a = $splitEstado[1]; // MUNICIPIO
-
+                        //echo $dondeTaggeo . " ==> " . $puntaje . " ESTADO TITULO\n";
+                        $archivoTaggeo = "ninguno.txt";
+                        switch ($puntaje) {
+                            case 1:
+                                $archivoTaggeo = "taggeo-estado.txt";
+                                break;
+                            case 2:
+                                $archivoTaggeo = "taggeo-municipio.txt";
+                                break;
+                            case 3:
+                                $archivoTaggeo = "taggeo-asentamiento.txt";
+                                break;
+                        }
+                        $fh = fopen($directorio . $archivoTaggeo, "a+") or die("Se produjo un error al crear el archivo");
+                        fwrite($fh, ($dondeTaggeo . "\n")) or die("No se pudo escribir en el archivo");
+                        fclose($fh);
+                        break;
+                    }
+                    //*********** ESTADO TITULO ***********************/
+                    else {
+                        //*********** MUNICIPIO TITULO ***********************/
+                        $a = $splitEstado[1];
                         $matches = array_filter($array_contenido, function ($var) use ($a) {
-                            return stristr($var, $a);
-                            //return preg_match("/$a/i", $var);
+                            //return stristr($var, $a);
+                            return preg_match("/$a/i", $var);
                         });
 
-                        if ($matches) { // se ha encontrado el termino
+                        if ($matches) {
+                            $puntaje = 2;
+                            $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
-                            $a = $splitEstado[2]; // ASENTAMIENTO
+                            //*********** ASENTAMIENTO TITULO ***********************/
+                            $a = $splitEstado[2];
                             $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                return stristr($var, $a);
-                                //return preg_match("/$a/i", $var);
+                                //return stristr($var, $a);
+                                return preg_match("/$a/i", $var);
                             });
 
                             if ($matches) {
+                                $puntaje = 3;
+                                $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                             }
-                        } else {
+                            //*********** ASENTAMIENTO TITULO ***********************/
+                            //echo $dondeTaggeo . " ==> " . $puntaje . " MUNICIPIO TITULO\n";
+                            $archivoTaggeo = "ninguno.txt";
+                            switch ($puntaje) {
+                                case 1:
+                                    $archivoTaggeo = "taggeo-estado.txt";
+                                    break;
+                                case 2:
+                                    $archivoTaggeo = "taggeo-municipio.txt";
+                                    break;
+                                case 3:
+                                    $archivoTaggeo = "taggeo-asentamiento.txt";
+                                    break;
+                            }
+                            $fh = fopen($directorio . $archivoTaggeo, "a+") or die("Se produjo un error al crear el archivo");
+                            fwrite($fh, ($dondeTaggeo . "\n")) or die("No se pudo escribir en el archivo");
+                            fclose($fh);
+                            break;
+                        }
+                        //*********** MUNICIPIO TITULO ***********************/
+                        else {
 
-                            $a = $splitEstado[2]; // ASENTAMIENTO
-
+                            //*********** ASENTAMIENTO TITULO ***********************/
+                            $a = $splitEstado[2];
                             $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                return stristr($var, $a);
-                                //return preg_match("/$a/i", $var);
+                                //return stristr($var, $a);
+                                return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) { // se ha encontrado el termino
-
-                                $newNews = $directorio . $news->id . ".json";
-                                $dato = $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|" . $splitEstado[3] . "\n";
-                                $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
-                                file_put_contents($newNews, $json);
-
-                                echo "------" . $count++ . " .-  " . $newNews . " => " . $dato;
-
-                                $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
-                                fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
+                            if ($matches) {
+                                $puntaje = 3;
+                                $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[2] . "|" . $splitEstado[2];
+                                //echo $dondeTaggeo . " ==> " . $puntaje . " ASENTAMIENTO TITULO\n";
+                                $archivoTaggeo = "ninguno.txt";
+                                switch ($puntaje) {
+                                    case 1:
+                                        $archivoTaggeo = "taggeo-estado.txt";
+                                        break;
+                                    case 2:
+                                        $archivoTaggeo = "taggeo-municipio.txt";
+                                        break;
+                                    case 3:
+                                        $archivoTaggeo = "taggeo-asentamiento.txt";
+                                        break;
+                                }
+                                $fh = fopen($directorio . $archivoTaggeo, "a+") or die("Se produjo un error al crear el archivo");
+                                fwrite($fh, ($dondeTaggeo . "\n")) or die("No se pudo escribir en el archivo");
                                 fclose($fh);
                                 break;
-                            } else {
+                            }
+                            //*********** ASENTAMIENTO TITULO ***********************/
 
-                                $array_contenido = explode(" ", strtolower($news->summary)); // BUSCAR POR SUMMARY
+                            else {
 
-                                $a = $splitEstado[0]; // ESTADO
+                                //*********** ESTADO SUMMARY ***********************/
+                                $array_contenido = explode(" ", strtolower($news->summary));
+                                $a = $splitEstado[0];
                                 $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                    return stristr($var, $a);
-                                    //return preg_match("/$a/i", $var);
+                                    //return stristr($var, $a);
+                                    return preg_match("/$a/i", $var);
                                 });
 
-                                if ($matches) { // se ha encontrado el termino
+                                if ($matches) {
+                                    $puntaje = 1;
+                                    $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
+                                    //*********** MUNICIPIO SUMMARY ***********************/
                                     $a = $splitEstado[1]; // MUNICIPIO
                                     $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                        return stristr($var, $a);
-                                        //return preg_match("/$a/i", $var);
+                                        //return stristr($var, $a);
+                                        return preg_match("/$a/i", $var);
                                     });
 
                                     if ($matches) {
+                                        $puntaje = 2;
+                                        $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
-                                        $a = $splitEstado[2]; // ASENTAMIENTO
+                                        //*********** ASENTAMIENTO SUMMARY ***********************/
+                                        $a = $splitEstado[2];
                                         $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                            return stristr($var, $a);
-                                            //return preg_match("/$a/i", $var);
+                                            //return stristr($var, $a);
+                                            return preg_match("/$a/i", $var);
                                         });
 
                                         if ($matches) {
+                                            $puntaje = 3;
+                                            $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                         }
+                                        //*********** ASENTAMIENTO SUMMARY ***********************/
                                     }
-                                } else {
+                                    //*********** MUNICIPIO SUMMARY ***********************/
+
+                                    //echo $dondeTaggeo . " ==> " . $puntaje . " ESTADO SUMMARY\n";
+                                    $archivoTaggeo = "ninguno.txt";
+                                    switch ($puntaje) {
+                                        case 1:
+                                            $archivoTaggeo = "taggeo-estado.txt";
+                                            break;
+                                        case 2:
+                                            $archivoTaggeo = "taggeo-municipio.txt";
+                                            break;
+                                        case 3:
+                                            $archivoTaggeo = "taggeo-asentamiento.txt";
+                                            break;
+                                    }
+                                    $fh = fopen($directorio . $archivoTaggeo, "a+") or die("Se produjo un error al crear el archivo");
+                                    fwrite($fh, ($dondeTaggeo . "\n")) or die("No se pudo escribir en el archivo");
+                                    fclose($fh);
+                                    break;
+                                }
+                                //*********** ESTADO SUMMARY ***********************/
+
+                                else {
+
+                                    //*********** MUNICIPIO SUMMARY ***********************/
                                     $a = $splitEstado[1]; // MUNICIPIO
                                     $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                        return stristr($var, $a);
-                                        //return preg_match("/$a/i", $var);
+                                        //return stristr($var, $a);
+                                        return preg_match("/$a/i", $var);
                                     });
 
                                     if ($matches) { // se ha encontrado el termino
 
-                                        $a = $splitEstado[2]; // ASENTAMIENTO
+                                        $puntaje = 2;
+                                        $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
+
+                                        //*********** ASENTAMIENTO SUMMARY ***********************/
+                                        $a = $splitEstado[2];
                                         $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                            return stristr($var, $a);
-                                            //return preg_match("/$a/i", $var);
+                                            //return stristr($var, $a);
+                                            return preg_match("/$a/i", $var);
                                         });
 
                                         if ($matches) {
+                                            $puntaje = 3;
+                                            $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                         }
-                                    } else {
-                                        $a = $splitEstado[2]; // ASENTAMIENTO
+                                        //*********** ASENTAMIENTO SUMMARY ***********************/
+
+                                        //echo $dondeTaggeo . " ==> " . $puntaje . " MUNICIPIO SUMMARY\n";
+                                        $archivoTaggeo = "ninguno.txt";
+                                        switch ($puntaje) {
+                                            case 1:
+                                                $archivoTaggeo = "taggeo-estado.txt";
+                                                break;
+                                            case 2:
+                                                $archivoTaggeo = "taggeo-municipio.txt";
+                                                break;
+                                            case 3:
+                                                $archivoTaggeo = "taggeo-asentamiento.txt";
+                                                break;
+                                        }
+                                        $fh = fopen($directorio . $archivoTaggeo, "a+") or die("Se produjo un error al crear el archivo");
+                                        fwrite($fh, ($dondeTaggeo . "\n")) or die("No se pudo escribir en el archivo");
+                                        fclose($fh);
+                                        break;
+                                    }
+                                    //*********** MUNICIPIO SUMMARY ***********************/
+
+                                    else {
+
+                                        //*********** ASENTAMIENTO SUMMARY ***********************/
+                                        $a = $splitEstado[2];
                                         $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                            return stristr($var, $a);
-                                            //return preg_match("/$a/i", $var);
+                                            //return stristr($var, $a);
+                                            return preg_match("/$a/i", $var);
                                         });
 
-                                        if ($matches) { // se ha encontrado el termino
-                                            $newNews = $directorio . $news->id . ".json";
-                                            $dato = $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|" . $splitEstado[3] . "\n";
-                                            $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
-                                            file_put_contents($newNews, $json);
-
-                                            echo "------" . $count++ . " .-  " . $newNews . "\n";
-
-                                            $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
-                                            fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
+                                        if ($matches) {
+                                            $puntaje = 3;
+                                            $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
+                                            //echo $dondeTaggeo . " ==> " . $puntaje . " ASENTAMIENTO SUMMARY\n";
+                                            $archivoTaggeo = "ninguno.txt";
+                                            switch ($puntaje) {
+                                                case 1:
+                                                    $archivoTaggeo = "taggeo-estado.txt";
+                                                    break;
+                                                case 2:
+                                                    $archivoTaggeo = "taggeo-municipio.txt";
+                                                    break;
+                                                case 3:
+                                                    $archivoTaggeo = "taggeo-asentamiento.txt";
+                                                    break;
+                                            }
+                                            $fh = fopen($directorio . $archivoTaggeo, "a+") or die("Se produjo un error al crear el archivo");
+                                            fwrite($fh, ($dondeTaggeo . "\n")) or die("No se pudo escribir en el archivo");
                                             fclose($fh);
                                             break;
-                                        } else {
+                                        }
+                                        //*********** ASENTAMIENTO SUMMARY ***********************/
+
+                                        else {
 
                                             if ($news->content != "") {
 
                                                 $array_contenido = explode(" ", strtolower($news->content)); // BUSCAR EN CONTENIDO
 
-                                                $a = $splitEstado[0]; // ESTADO
+                                                //*********** ESTADO CONTENIDO ***********************/
+                                                $a = $splitEstado[0];
                                                 $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                                    return stristr($var, $a);
-                                                    //return preg_match("/$a/i", $var);
+                                                    //return stristr($var, $a);
+                                                    return preg_match("/$a/i", $var);
                                                 });
 
-                                                if ($matches) { // se ha encontrado el termino
+                                                if ($matches) {
+                                                    $puntaje = 1;
+                                                    $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
+                                                    //*********** MUNICIPIO CONTENIDO ***********************/
                                                     $a = $splitEstado[1]; // MUNICIPIO
                                                     $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                                        return stristr($var, $a);
-                                                        //return preg_match("/$a/i", $var);
+                                                        //return stristr($var, $a);
+                                                        return preg_match("/$a/i", $var);
                                                     });
 
                                                     if ($matches) {
+                                                        $puntaje = 2;
+                                                        $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
+                                                        //*********** ASENTAMIENTO CONTENIDO ***********************/
                                                         $a = $splitEstado[2]; // ASENTAMIENTO
                                                         $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                                            return stristr($var, $a);
-                                                            //return preg_match("/$a/i", $var);
+                                                            //return stristr($var, $a);
+                                                            return preg_match("/$a/i", $var);
                                                         });
 
                                                         if ($matches) {
+                                                            $puntaje = 3;
+                                                            $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                                         }
+                                                        //*********** ASENTAMIENTO CONTENIDO ***********************/
                                                     }
-                                                } else {
-                                                    $a = $splitEstado[1]; // MUNICIPIO
+                                                    //*********** MINICIPIO CONTENIDO ***********************/
+
+                                                    //echo $dondeTaggeo . " ==> " . $puntaje . " ESTADO CONTENIDO\n";
+                                                    $archivoTaggeo = "ninguno.txt";
+                                                    switch ($puntaje) {
+                                                        case 1:
+                                                            $archivoTaggeo = "taggeo-estado.txt";
+                                                            break;
+                                                        case 2:
+                                                            $archivoTaggeo = "taggeo-municipio.txt";
+                                                            break;
+                                                        case 3:
+                                                            $archivoTaggeo = "taggeo-asentamiento.txt";
+                                                            break;
+                                                    }
+                                                    $fh = fopen($directorio . $archivoTaggeo, "a+") or die("Se produjo un error al crear el archivo");
+                                                    fwrite($fh, ($dondeTaggeo . "\n")) or die("No se pudo escribir en el archivo");
+                                                    fclose($fh);
+                                                    break;
+                                                }
+                                                //*********** ESTADO CONTENIDO ***********************/
+
+                                                else {
+                                                    //*********** MUNICIPIO CONTENIDO ***********************/
+                                                    $a = $splitEstado[1];
                                                     $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                                        return stristr($var, $a);
-                                                        //return preg_match("/$a/i", $var);
+                                                        //return stristr($var, $a);
+                                                        return preg_match("/$a/i", $var);
                                                     });
 
-                                                    if ($matches) { // se ha encontrado el termino
+                                                    if ($matches) {
+                                                        $puntaje = 2;
+                                                        $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
+                                                        //*********** ASENTAMIENTO CONTENIDO ***********************/
                                                         $a = $splitEstado[2]; // ASENTAMIENTO
                                                         $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                                            return stristr($var, $a);
-                                                            //return preg_match("/$a/i", $var);
+                                                            //return stristr($var, $a);
+                                                            return preg_match("/$a/i", $var);
                                                         });
 
                                                         if ($matches) {
+                                                            $puntaje = 3;
+                                                            $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2];
                                                         }
-                                                    } else {
-                                                        $a = $splitEstado[2]; // ASENTAMIENTO
+                                                        //*********** ASENTAMIENTO CONTENIDO ***********************/
+
+                                                        //echo $dondeTaggeo . " ==> " . $puntaje . " MUNICIPIO CONTENIDO\n";
+                                                        $archivoTaggeo = "ninguno.txt";
+                                                        switch ($puntaje) {
+                                                            case 1:
+                                                                $archivoTaggeo = "taggeo-estado.txt";
+                                                                break;
+                                                            case 2:
+                                                                $archivoTaggeo = "taggeo-municipio.txt";
+                                                                break;
+                                                            case 3:
+                                                                $archivoTaggeo = "taggeo-asentamiento.txt";
+                                                                break;
+                                                        }
+                                                        $fh = fopen($directorio . $archivoTaggeo, "a+") or die("Se produjo un error al crear el archivo");
+                                                        fwrite($fh, ($dondeTaggeo . "\n")) or die("No se pudo escribir en el archivo");
+                                                        fclose($fh);
+                                                        break;
+                                                    }
+                                                    //*********** MUNICIPIO CONTENIDO ***********************/
+
+                                                    else {
+                                                        //*********** ASENTAMIENTO CONTENIDO ***********************/
+                                                        $a = $splitEstado[2];
                                                         $matches = array_filter($array_contenido, function ($var) use ($a) {
-                                                            return stristr($var, $a);
-                                                            //return preg_match("/$a/i", $var);
+                                                            //return stristr($var, $a);
+                                                            return preg_match("/$a/i", $var);
                                                         });
 
-                                                        if ($matches) { // se ha encontrado el termino
-                                                            $newNews = $directorio . $news->id . ".json";
-                                                            $dato = $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|" . $splitEstado[3] . "\n";
-                                                            $json = json_encode($dato, JSON_UNESCAPED_UNICODE);
-                                                            file_put_contents($newNews, $json);
-
-                                                            echo "------" . $count++ . " .-  " . $newNews . " => " . $dato;
-
-                                                            $fh = fopen($directorio . "notaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
-                                                            fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
-                                                            fclose($fh);
-                                                            break;
-                                                        } else {
-                                                            $dato = $news->id . "\n";
-
-                                                            $fh = fopen($directorio . "no-NotaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
-                                                            fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
+                                                        if ($matches) {
+                                                            $puntaje = 3;
+                                                            $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
+                                                            //echo $dondeTaggeo . " ==> " . $puntaje . " ASENTAMIENTO CONTENIDO\n";
+                                                            $archivoTaggeo = "ninguno.txt";
+                                                            switch ($puntaje) {
+                                                                case 1:
+                                                                    $archivoTaggeo = "taggeo-estado.txt";
+                                                                    break;
+                                                                case 2:
+                                                                    $archivoTaggeo = "taggeo-municipio.txt";
+                                                                    break;
+                                                                case 3:
+                                                                    $archivoTaggeo = "taggeo-asentamiento.txt";
+                                                                    break;
+                                                            }
+                                                            $fh = fopen($directorio . $archivoTaggeo, "a+") or die("Se produjo un error al crear el archivo");
+                                                            fwrite($fh, ($dondeTaggeo . "\n")) or die("No se pudo escribir en el archivo");
                                                             fclose($fh);
                                                             break;
                                                         }
+                                                        //*********** ASENTAMIENTO CONTENIDO ***********************/
                                                     }
                                                 }
                                             } else {
+                                                /*
                                                 $dato = $news->id . "\n";
 
                                                 $fh = fopen($directorio . "no-NotaTaggeada.txt", "a+") or die("Se produjo un error al crear el archivo");
                                                 fwrite($fh, $dato) or die("No se pudo escribir en el archivo");
                                                 fclose($fh);
+                                                break;
+                                                */
+
                                                 break;
                                             }
                                         }
@@ -329,6 +535,8 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 }
                             }
                         }
+
+                        break;
                     }
                 }
             }

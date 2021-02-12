@@ -47,7 +47,7 @@ class TaggeoNews extends Command
     {
         try {
             echo "===== Proceso Iniciando ====== \n";
-            // $this->CraerNoticias();
+            $this->CraerNoticias();
             // $this->CrearEstadosMunicipiosUrl();
             $this->TaggearNotasPorUrls();
             echo "===== Proceso Terminado ====== \n";
