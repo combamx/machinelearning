@@ -9,6 +9,8 @@ use App\Jobs\BuscarPalabraTitulo;
 use App\Jobs\BuscarPalabraMatriz;
 use App\Jobs\TaggearNota;
 use App\Jobs\TaggeoNoticiasAsentamiento;
+use App\Jobs\TaggeoNoticiasSQLite;
+use Illuminate\Support\Facades\DB;
 
 use Illuminate\Console\Command;
 
@@ -47,12 +49,17 @@ class TaggeoNews extends Command
     {
         try {
             echo "===== Proceso Iniciando ====== \n";
-            $this->CraerNoticias();
-            // $this->CrearEstadosMunicipiosUrl();
-            $this->TaggearNotasPorUrls();
+            //$this->CraerNoticias();
+            //$this->CrearEstadosMunicipiosUrl();
+            //$this->TaggearNotasPorUrls();
+
+            $this->TaggearNotaSQLite();
+
+
             echo "===== Proceso Terminado ====== \n";
         } catch (Exception $ex) {
             \Log::error($ex->getMessage());
+            var_dump($ex);
         }
     }
 
@@ -60,25 +67,15 @@ class TaggeoNews extends Command
     {
         try {
             ini_set('memory_limit', '-1');
+            $db = DB::connection('sqlite');
 
-            $objNews = array();
             $contenido = "";
             $resena = "";
             $titulo = "";
 
-            /**
-             * Crear Noticias
-             */
+            $news = DB::select("SELECT id, title, summary, content FROM news WHERE created_at >= now() - INTERVAL 1 DAY AND id_author != 100 AND id_status_news = 2 AND url IS NULL ORDER BY id;");
 
-            $archivo = "public/news/news-" . date("Y-m-d") . ".json";
-            if (file_exists($archivo)) {
-                unlink($archivo);
-                echo "Se elimino el archivo " . $archivo . "\n";
-                //echo "El archivo ".$archivo." ya existe\n";
-                //return true;
-            }
-
-            $news = \DB::select("SELECT id, title, summary, content FROM news WHERE created_at >= now() - INTERVAL 1 DAY AND id_author != 100 AND id_status_news = 2 AND url IS NULL ORDER BY id;");
+            $db->table('news')->delete();
 
             $articulos = array(
                 "“", "”", ";", ".", ",", "[…]", '"', "\\", " / ", ":", " a ", " tu ", " y ", " con ", " la ", " este ", " de ", " que ", " se ", " debe ", " una ", " pero ", " los ", " las ", " tus ", " para ", " el ",
@@ -89,16 +86,19 @@ class TaggeoNews extends Command
                 " sobre ", " entre ", " alado ", " lado ", " si ", " sé ", " estoy ", " cuáles ", " quién ", " estoy ", " sé ", " o ", " vez ", " tiene ", " día ", " casa ", " tía ",
             );
 
+            $count = 1;
+
             foreach ($news as $new) {
                 if ($new->content !== "") {
                     $contenido = strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $new->content)));
                     $contenido = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $contenido);
+                    //$contenido = str_replace($articulos,  " ", $contenido);
                 }
                 $resena = strtolower(str_replace(array("\n", "\t", "\\"), "", $new->summary));
                 $resena = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $resena);
-                $titulo = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $new->title);
+                $titulo = strtolower(str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $new->title));
 
-                $obj = array(
+                $db->table('news')->insert([
                     "id" => $new->id,
                     "title" => $titulo,
                     "summary" => $resena,
@@ -106,21 +106,15 @@ class TaggeoNews extends Command
                     "estado" => "",
                     "municipio" => "",
                     "asentamiento" => "",
-                    "cp" => 0,
-                    "idPostalCode" => 0,
+                    "cp" => "",
                     "copo" => ""
-                );
+                ]);
 
-                array_push($objNews, $obj);
-                unset($obj);
+                echo "Noticia agregada " . $new->id ." - ". $new->title . "\n";
+                $count++;
             }
 
-            $count = count($objNews);
-
-            $json = json_encode($objNews, JSON_UNESCAPED_UNICODE);
-            file_put_contents($archivo, $json);
-            echo "Se creo el archivo " . $archivo . " número de notas " . $count . "\n";
-            unset($objNews);
+            echo "Se agregoron los registros en la tabla news, registros agregados " . $count ."\n";
             return true;
         } catch (Exception $ex) {
             \Log::error($ex->getMessage());
@@ -231,12 +225,9 @@ class TaggeoNews extends Command
         try {
             ini_set('memory_limit', '-1');
 
-            $objAsentamientos = array();
-            $objMunicipios = array();
-
-            /**
-             * Crear Estados, Municipios y Asentamientos
-             */
+            $count = 1;
+            $db = DB::connection('sqlite');
+            $db->table('estados')->delete();
 
             $estados = \DB::select("SELECT c.c_estado, c.d_estado FROM copopro.postal_codes c WHERE c.d_asenta != 'México' GROUP BY c.c_estado,c.d_estado ORDER BY c.d_estado;");
 
@@ -250,7 +241,7 @@ class TaggeoNews extends Command
                                     CONCAT(c.d_tipo_asenta, ' ', c.d_asenta) as nom_asentamiento,
                                     c.d_asenta,
                                     c.d_codigo,
-                                    IFNULL(s.title, '') as copo
+                                    IFNULL(s.title, 'sin copo') as copo
                                 FROM copopro.postal_codes c
                                     LEFT JOIN copopro.copos_postalcodes p ON (p.postal_code_id = c.d_codigo)
                                     LEFT JOIN copopro.copos s ON (s.id = p.copo_id)
@@ -260,28 +251,21 @@ class TaggeoNews extends Command
                 $municipios = \DB::select($query);
 
                 foreach ($municipios as $municipio) {
-                    $objA = array(
-                        "url" => strtolower($municipio->d_estado . "|" . $municipio->d_municipio . "|" . str_replace(array("(", ")", "[", "]", "{", "}", "'", '"', ".", ";", ":", "/", "\\", "?", "*", "!", "&", "%", "$", "#", "¡", "¿"), "", $municipio->nom_asentamiento)  . "|" . $municipio->d_codigo . "|" . $municipio->copo),
-                    );
+                    $asenta = str_replace(array("(", ")", "[", "]", "{", "}", "'", '"', ".", ";", ":", "/", "\\", "?", "*", "!", "&", "%", "$", "#", "¡", "¿"), "", $municipio->nom_asentamiento);
 
-                    array_push($objMunicipios, $objA);
-                    unset($objA);
+                    $db->table('estados')->insert([
+                        "estado" => strtolower($municipio->d_estado),
+                        "municipio" => strtolower($municipio->d_municipio),
+                        "asentamiento" => strtolower($asenta),
+                        "cp" => $municipio->d_codigo,
+                        "copo" => $municipio->copo
+                    ]);
+
+                    echo $count++ ." Estado agregado ". $municipio->d_estado .", ".$municipio->d_municipio.", ".$asenta."\n";
+
                 }
 
-                $archivo = "public/estados/" . str_replace(array(" ", "á", "é", "í", "ó", "ú", "ñ"), array("-", "a", "e", "i", "o", "u", "n"), strtolower($estado->d_estado)) . ".json";
-
-                array_push($objAsentamientos, $objMunicipios);
-                $objMunicipios  = array();
-
-                if (file_exists($archivo)) unlink($archivo);
-
-                $json = json_encode($objAsentamientos, JSON_UNESCAPED_UNICODE);
-                file_put_contents($archivo, $json);
-
-                echo "Estado " . $archivo . " agregado al array con sus municipios y asentamientos\n";
-
-                $objAsentamientos  = array();
-                $objMunicipios  = array();
+                echo "Registros agregados " . $count."\n";
             }
 
             echo "Se crearon las Estados, Municipios y Asentamientos Json\n";
@@ -310,6 +294,16 @@ class TaggeoNews extends Command
         try {
             TaggeoNoticiasAsentamiento::dispatch();
         } catch (Exception $ex) {
+            \Log::error($ex->getMessage());
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    private function TaggearNotaSQLite(){
+        try{
+            TaggeoNoticiasSQLite::dispatch();
+        }
+        catch (Exception $ex){
             \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
