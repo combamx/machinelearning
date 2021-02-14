@@ -36,8 +36,8 @@ class TaggeoNoticiasSQLite implements ShouldQueue
     {
         try {
             $this->db = DB::connection('sqlite');
-            //$this->CrearMatrixdeDatos();
-            $this->AgregarNotasEstadoMunicipio();
+            $this->CrearMatrixdeDatos();
+            //$this->AgregarNotasEstadoMunicipio();
         } catch (Exception $ex) {
             \Log::error($ex->getMessage());
             var_dump($ex);
@@ -125,7 +125,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
 
             foreach ($estados as $estado) {
                 echo "Buscar el asentamiento, " . $estado->asentamiento . " en el contenido\n";
-                $query =  "SELECT n.id FROM news n WHERE n.content LIKE '%" . $estado->asentamiento . "%' AND (n.content LIKE '%".$estado->municipio."%' OR n.content LIKE '%".$estado->estado."%') AND n.content <> '' ORDER BY n.id;";
+                $query =  "SELECT n.id FROM news n WHERE n.content LIKE '%" . $estado->asentamiento . "%' OR n.content LIKE '%".$estado->municipio."%' OR n.content LIKE '%".$estado->estado."%' AND n.content <> '' ORDER BY n.id;";
                 $resultados = $this->db->select($query);
 
                 foreach ($resultados as $resultado) {
