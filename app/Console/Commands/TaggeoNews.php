@@ -49,13 +49,10 @@ class TaggeoNews extends Command
     {
         try {
             echo "===== Proceso Iniciando ====== \n";
-            //$this->CraerNoticias();
             //$this->CrearEstadosMunicipiosUrl();
             //$this->TaggearNotasPorUrls();
-
+            //$this->CraerNoticias();
             $this->TaggearNotaSQLite();
-
-
             echo "===== Proceso Terminado ====== \n";
         } catch (Exception $ex) {
             \Log::error($ex->getMessage());
@@ -67,14 +64,10 @@ class TaggeoNews extends Command
     {
         try {
             ini_set('memory_limit', '-1');
-            $db = DB::connection('sqlite');
-
-            $contenido = "";
-            $resena = "";
-            $titulo = "";
 
             $news = DB::select("SELECT id, title, summary, content FROM news WHERE created_at >= now() - INTERVAL 1 DAY AND id_author != 100 AND id_status_news = 2 AND url IS NULL ORDER BY id;");
 
+            $db = DB::connection('sqlite');
             $db->table('news')->delete();
 
             $articulos = array(
@@ -89,6 +82,7 @@ class TaggeoNews extends Command
             $count = 1;
 
             foreach ($news as $new) {
+                $contenido = "";
                 if ($new->content !== "") {
                     $contenido = strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $new->content)));
                     $contenido = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $contenido);
@@ -98,6 +92,18 @@ class TaggeoNews extends Command
                 $resena = str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $resena);
                 $titulo = strtolower(str_replace(array("Á", "É", "Í", "Ó", "Ú"),  array("á", "é", "í", "ó", "ú"), $new->title));
 
+                /*
+                $archivo = "public/news/news-".date("Y-m-d").".json";
+                if (file_exists($archivo)) unlink($archivo);
+
+                $fh = fopen($archivo, "a+") or die("Se produjo un error al crear el archivo");
+
+                fwrite($fh, ($new->id . "\n")) or die("No se pudo escribir en el archivo");
+                fwrite($fh, ($new->title . "\n")) or die("No se pudo escribir en el archivo");
+                fwrite($fh, ($new->summary . "\n")) or die("No se pudo escribir en el archivo");
+                fwrite($fh, ($new->content . "\n")) or die("No se pudo escribir en el archivo");
+                fclose($fh);
+                */
                 $db->table('news')->insert([
                     "id" => $new->id,
                     "title" => $titulo,
@@ -109,7 +115,6 @@ class TaggeoNews extends Command
                     "cp" => "",
                     "copo" => ""
                 ]);
-
                 echo "Noticia agregada " . $new->id ." - ". $new->title . "\n";
                 $count++;
             }
