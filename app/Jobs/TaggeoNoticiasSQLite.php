@@ -16,6 +16,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private $db;
+    private $cacheEstados = array();
 
     /**
      * Create a new job instance.
@@ -36,8 +37,9 @@ class TaggeoNoticiasSQLite implements ShouldQueue
     {
         try {
             $this->db = DB::connection('sqlite');
-            $this->CrearMatrixdeDatos();
-            //$this->AgregarNotasEstadoMunicipio();
+            //$this->CrearMatrixdeDatos();
+            $this->CagarEstadosMemoria();
+            $this->LeerMatrixBuscarCoincidencias();
         } catch (Exception $ex) {
             \Log::error($ex->getMessage());
             var_dump($ex);
@@ -65,42 +67,32 @@ class TaggeoNoticiasSQLite implements ShouldQueue
 
         try {
             $this->db->table('matrix')->delete();
-            $news = $this->db->table('news')->select('id', 'content', 'title')->get();
-            $count = 1;
+            $news = $this->db->table('news')->select('id', 'content', 'summary', 'title')->get();
 
             foreach ($news as $item) {
-                echo $item->id . "\n";
                 if ($item->content != "") {
+
+                    $directorio = "public/matrix/" . $item->id . ".txt";
+
+                    if (file_exists($directorio)) {
+                        unlink($directorio);
+                    }
+
+                    $fh = fopen($directorio, "a+") or die("Se produjo un error al crear el archivo");
+
                     echo $item->id . " - " . $item->title . "\n";
 
                     $contenido = strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $item->content)));
                     $contenido = str_replace(array("Á", "É", "Í", "Ó", "Ú"), array("á", "é", "í", "ó", "ú"), $contenido);
-                    $contenido = str_replace($eliminar, "", $contenido);
-                    $contenido = str_replace($articulos, " ", $contenido);
+                    //$contenido = str_replace($eliminar, "", $contenido);
+                    //$contenido = str_replace($articulos, " ", $contenido);
+                    //$array_contenido = explode(" ", strtolower($contenido));
 
-                    $array_contenido = explode(" ", strtolower($contenido));
-
-                    foreach ($array_contenido as $content) {
-
-                        if ($content != "") {
-
-                            if ($content == "script" || $content == "function" || $content == "windowdatalayer" || $content == "window") break;
-
-                            $this->db->table('matrix')->insert([
-                                "id" => $item->id,
-                                "matrix" => $content
-                            ]);
-
-                            echo $item->id . " - " . $content . "\n";
-                        }
-                    }
-
-                    /*
-                    if ($count == 3) {
-                        exit;
-                    }
-
-                    $count++;*/
+                    fwrite($fh, ($item->id . "\n")) or die("No se pudo escribir en el archivo");
+                    fwrite($fh, ($item->title . "\n")) or die("No se pudo escribir en el archivo");
+                    fwrite($fh, ($item->summary . "\n")) or die("No se pudo escribir en el archivo");
+                    fwrite($fh, ($item->content . "\n")) or die("No se pudo escribir en el archivo");
+                    fclose($fh);
                 }
             }
         } catch (Exception $ex) {
@@ -125,7 +117,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
 
             foreach ($estados as $estado) {
                 echo "Buscar el asentamiento, " . $estado->asentamiento . " en el contenido\n";
-                $query =  "SELECT n.id FROM news n WHERE n.content LIKE '%" . $estado->asentamiento . "%' OR n.content LIKE '%".$estado->municipio."%' OR n.content LIKE '%".$estado->estado."%' AND n.content <> '' ORDER BY n.id;";
+                $query =  "SELECT n.id FROM news n WHERE n.content LIKE '%" . $estado->asentamiento . "%' OR n.content LIKE '%" . $estado->municipio . "%' OR n.content LIKE '%" . $estado->estado . "%' AND n.content <> '' ORDER BY n.id;";
                 $resultados = $this->db->select($query);
 
                 foreach ($resultados as $resultado) {
@@ -143,6 +135,226 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                 }
             }
         } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    private function LeerMatrixBuscarCoincidencias()
+    {
+        try {
+            ini_set('memory_limit', '-1');
+
+            $noticiaTaggeada = 0;
+
+            $json_estado = json_decode(json_encode($this->cacheEstados));
+            $this->db->table('taggeos')->delete();
+
+            echo "====================================================================================\n";
+            echo "Iniciando la busqueda de estados, municipios y asentamientos en el contenido de la nota\n";
+
+            $thefolder = "public/matrix/";
+
+            if ($handler = opendir($thefolder)) {
+                while (false !== ($archivo = readdir($handler))) {
+
+                    if ($archivo != "." && $archivo != "..") {
+
+                        echo "Buscando coincidencias en " . $archivo . " " . date("H:m:s") . "\n";
+
+                        foreach ($json_estado as $estado) {
+                            foreach ($estado as $item) {
+
+                                $bEstado = false;
+                                $bMunicipio = false;
+                                $bAsentamiento = false;
+
+                                $splitEstado = explode("|", $item->url);
+                                $splitArchivo = explode(".", $archivo);
+
+                                $pagina = file_get_contents("public/matrix/" . $archivo);
+                                $estadox = $splitEstado[0];
+                                $municipiox = $splitEstado[1];
+                                $asentamientox = $splitEstado[2];
+
+                                $array_contenido = explode(PHP_EOL, strtolower($pagina)); // BUSCAR EN CONTENIDO
+                                $bEstado = array_filter($array_contenido, function ($var) use ($estadox) {
+                                    //$a = stristr($var, $estadox)."\n";
+                                    $b = preg_match("/^$estadox$/i", $var);
+                                    //$c = strpos($var, $estadox);
+
+                                    //if($a != false) return true;
+                                    if($b == 1) return true;
+                                    //if($c != false) return true;
+
+                                    return false;
+                                });
+
+                                $bMunicipio = array_filter($array_contenido, function ($var) use ($municipiox) {
+                                    //$a = stristr($var, $municipiox)."\n";
+                                    $b = preg_match("/^$municipiox$/i", $var);
+                                    //$c = strpos($var, $municipiox);
+
+                                    //if($a != false) return true;
+                                    if($b == 1) return true;
+                                    //if($c != false) return true;
+
+                                    return false;
+                                });
+
+                                $bAsentamiento = array_filter($array_contenido, function ($var) use ($asentamientox) {
+                                    //$a = stristr($var, $asentamientox)."\n";
+                                    $b = preg_match("/$asentamientox$/i", $var);
+                                    //$c = strpos($var, $asentamientox);
+
+                                    //if($a != false) return true;
+                                    if($b == 1) return true;
+                                    //if($c != false) return true;
+
+                                    return false;
+                                });
+
+                                //if ($bEstado && $bMunicipio && $bAsentamiento && $noticiaTaggeada != $splitArchivo[0]) {
+                                if ($bEstado && $bMunicipio && $bAsentamiento) {
+                                    $this->db->table('taggeos')->insert([
+                                        "news" => $splitArchivo[0],
+                                        "estado" => $splitEstado[0],
+                                        "municipio" => $splitEstado[1],
+                                        "asentamiento" => $splitEstado[2],
+                                        "cp" => $splitEstado[3],
+                                        "copo" => $splitEstado[4] . " 5",
+                                        "fecha" => date('Y-m-d H:m:s')
+                                    ]);
+
+                                    $noticiaTaggeada = $splitArchivo[0];
+                                    $bEstado = false;
+                                    $bMunicipio = false;
+                                    $bAsentamiento = false;
+
+                                    echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
+                                    break;
+                                } else if ($bEstado && $bMunicipio) {
+                                    $this->db->table('taggeos')->insert([
+                                        "news" => $splitArchivo[0],
+                                        "estado" => $splitEstado[0],
+                                        "municipio" => $splitEstado[1],
+                                        "asentamiento" => "",
+                                        "cp" => "",
+                                        "copo" => "4",
+                                        "fecha" => date('Y-m-d H:m:s')
+                                    ]);
+
+                                    $noticiaTaggeada = $splitArchivo[0];
+                                    $bEstado = false;
+                                    $bMunicipio = false;
+                                    $bAsentamiento = false;
+
+                                    echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
+                                    break;
+                                } else if ($bEstado) {
+                                    $this->db->table('taggeos')->insert([
+                                        "news" => $splitArchivo[0],
+                                        "estado" => $splitEstado[0],
+                                        "municipio" => "",
+                                        "asentamiento" => "",
+                                        "cp" => "",
+                                        "copo" => "3",
+                                        "fecha" => date('Y-m-d H:m:s')
+                                    ]);
+
+                                    $noticiaTaggeada = $splitArchivo[0];
+                                    $bEstado = false;
+                                    $bMunicipio = false;
+                                    $bAsentamiento = false;
+
+                                    echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
+                                    break;
+                                } else if ($bMunicipio) {
+                                    $this->db->table('taggeos')->insert([
+                                        "news" => $splitArchivo[0],
+                                        "estado" => $splitEstado[0],
+                                        "municipio" => $splitEstado[1],
+                                        "asentamiento" => "",
+                                        "cp" => "",
+                                        "copo" => "2",
+                                        "fecha" => date('Y-m-d H:m:s')
+                                    ]);
+
+                                    $noticiaTaggeada = $splitArchivo[0];
+                                    $bEstado = false;
+                                    $bMunicipio = false;
+                                    $bAsentamiento = false;
+
+                                    echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
+                                    break;
+                                } else if ($bAsentamiento) {
+                                    $this->db->table('taggeos')->insert([
+                                        "news" => $splitArchivo[0],
+                                        "estado" => $splitEstado[0],
+                                        "municipio" => $splitEstado[1],
+                                        "asentamiento" => $splitEstado[2],
+                                        "cp" => $splitEstado[3],
+                                        "copo" => $splitEstado[4] . " 6",
+                                        "fecha" => date('Y-m-d H:m:s')
+                                    ]);
+
+                                    $noticiaTaggeada = $splitArchivo[0];
+                                    $bEstado = false;
+                                    $bMunicipio = false;
+                                    $bAsentamiento = false;
+
+                                    echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
+                                    break;
+                                }
+
+                                //echo $estadox . "-" . $municipiox . "-" . $asentamientox . "\n";
+                            }
+                        }
+                    }
+                }
+                closedir($handler);
+            }
+
+            echo "Terminando la busqueda de estados, municipios y asentamientos en el contenido de la nota\n";
+            echo "====================================================================================\n";
+
+            unset($this->cacheEstados);
+        } catch (Exception $ex) {
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    private function CagarEstadosMemoria()
+    {
+        try {
+            ini_set('memory_limit', '-1');
+
+            echo "====================================================================================\n";
+            echo "Iniciando la carga de estados a memoria\n";
+
+            $thefolder = "public/estados/";
+            if ($handler = opendir($thefolder)) {
+
+                while (false !== ($archivo = readdir($handler))) {
+
+                    if ($archivo != "." && $archivo != "..") {
+
+                        $datos_estado = file_get_contents("public/estados/" . $archivo);
+                        $json_estado = json_decode($datos_estado, true);
+                        $json_estado = $json_estado[0];
+
+                        array_push($this->cacheEstados, $json_estado);
+
+                        unset($datos_estado);
+                        unset($json_estado);
+                    }
+                }
+                closedir($handler);
+            }
+
+            echo "Terminando la carga de estados a memoria\n";
+            echo "====================================================================================\n";
+        } catch (Exception $ex) {
+            \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
         }
     }

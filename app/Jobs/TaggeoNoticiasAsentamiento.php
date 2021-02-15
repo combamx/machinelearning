@@ -116,7 +116,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                         return preg_match("/$a/i", $var);
                     });
 
-                    if ($matches) {
+                    if ($matches == 1) {
                         $puntaje = 1;
                         $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
@@ -127,7 +127,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                             //return preg_match("/$a/i", $var);
                         });
 
-                        if ($matches) {
+                        if ($matches == 1) {
                             $puntaje = 2;
                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -138,7 +138,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 3;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                             }
@@ -173,7 +173,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                             return preg_match("/$a/i", $var);
                         });
 
-                        if ($matches) {
+                        if ($matches == 1) {
                             $puntaje = 2;
                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -184,7 +184,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 3;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                             }
@@ -217,7 +217,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 3;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[2] . "|" . $splitEstado[2];
                                 //echo $dondeTaggeo . " ==> " . $puntaje . " ASENTAMIENTO TITULO\n";
@@ -250,7 +250,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                     return preg_match("/$a/i", $var);
                                 });
 
-                                if ($matches) {
+                                if ($matches == 1) {
                                     $puntaje = 1;
                                     $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
@@ -261,7 +261,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                         return preg_match("/$a/i", $var);
                                     });
 
-                                    if ($matches) {
+                                    if ($matches == 1) {
                                         $puntaje = 2;
                                         $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -272,7 +272,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                             return preg_match("/$a/i", $var);
                                         });
 
-                                        if ($matches) {
+                                        if ($matches == 1) {
                                             $puntaje = 3;
                                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                         }
@@ -309,7 +309,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                         return preg_match("/$a/i", $var);
                                     });
 
-                                    if ($matches) { // se ha encontrado el termino
+                                    if ($matches == 1) { // se ha encontrado el termino
 
                                         $puntaje = 2;
                                         $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
@@ -321,7 +321,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                             return preg_match("/$a/i", $var);
                                         });
 
-                                        if ($matches) {
+                                        if ($matches == 1) {
                                             $puntaje = 3;
                                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                         }
@@ -356,7 +356,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                             return preg_match("/$a/i", $var);
                                         });
 
-                                        if ($matches) {
+                                        if ($matches == 1) {
                                             $puntaje = 3;
                                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                             //echo $dondeTaggeo . " ==> " . $puntaje . " ASENTAMIENTO SUMMARY\n";
@@ -392,7 +392,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                     return preg_match("/$a/i", $var);
                                                 });
 
-                                                if ($matches) {
+                                                if ($matches == 1) {
                                                     $puntaje = 1;
                                                     $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
@@ -403,7 +403,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                         return preg_match("/$a/i", $var);
                                                     });
 
-                                                    if ($matches) {
+                                                    if ($matches == 1) {
                                                         $puntaje = 2;
                                                         $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -414,7 +414,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                             return preg_match("/$a/i", $var);
                                                         });
 
-                                                        if ($matches) {
+                                                        if ($matches == 1) {
                                                             $puntaje = 3;
                                                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                                         }
@@ -450,7 +450,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                         return preg_match("/$a/i", $var);
                                                     });
 
-                                                    if ($matches) {
+                                                    if ($matches == 1) {
                                                         $puntaje = 2;
                                                         $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -461,7 +461,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                             return preg_match("/$a/i", $var);
                                                         });
 
-                                                        if ($matches) {
+                                                        if ($matches == 1) {
                                                             $puntaje = 3;
                                                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2];
                                                         }
@@ -495,7 +495,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                             return preg_match("/$a/i", $var);
                                                         });
 
-                                                        if ($matches) {
+                                                        if ($matches == 1) {
                                                             $puntaje = 3;
                                                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                                             //echo $dondeTaggeo . " ==> " . $puntaje . " ASENTAMIENTO CONTENIDO\n";
@@ -571,7 +571,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                             return preg_match("/$a/i", $var);
                         });
 
-                        if ($matches) {
+                        if ($matches == 1) {
                             $puntaje = 1;
                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
@@ -582,7 +582,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 2;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -593,7 +593,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                     return preg_match("/$a/i", $var);
                                 });
 
-                                if ($matches) {
+                                if ($matches == 1) {
                                     $puntaje = 3;
                                     $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                 }
@@ -641,7 +641,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 2;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -652,7 +652,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                     return preg_match("/$a/i", $var);
                                 });
 
-                                if ($matches) {
+                                if ($matches == 1) {
                                     $puntaje = 3;
                                     $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2];
                                 }
@@ -697,7 +697,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                     return preg_match("/$a/i", $var);
                                 });
 
-                                if ($matches) {
+                                if ($matches == 1) {
                                     $puntaje = 3;
                                     $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                     //echo $dondeTaggeo . " ==> " . $puntaje . " ASENTAMIENTO CONTENIDO\n";
@@ -740,7 +740,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                         return preg_match("/$a/i", $var);
                                     });
 
-                                    if ($matches) {
+                                    if ($matches == 1) {
                                         $puntaje = 1;
                                         $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
@@ -751,7 +751,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                             return preg_match("/$a/i", $var);
                                         });
 
-                                        if ($matches) {
+                                        if ($matches == 1) {
                                             $puntaje = 2;
                                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -762,7 +762,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                 return preg_match("/$a/i", $var);
                                             });
 
-                                            if ($matches) {
+                                            if ($matches == 1) {
                                                 $puntaje = 3;
                                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                             }
@@ -808,7 +808,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                             return preg_match("/$a/i", $var);
                                         });
 
-                                        if ($matches) { // se ha encontrado el termino
+                                        if ($matches == 1) { // se ha encontrado el termino
 
                                             $puntaje = 2;
                                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
@@ -820,7 +820,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                 return preg_match("/$a/i", $var);
                                             });
 
-                                            if ($matches) {
+                                            if ($matches == 1) {
                                                 $puntaje = 3;
                                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                             }
@@ -864,7 +864,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                                 return preg_match("/$a/i", $var);
                                             });
 
-                                            if ($matches) {
+                                            if ($matches == 1) {
                                                 $puntaje = 3;
                                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                                 $archivoTaggeo = "ninguno.txt";
@@ -912,7 +912,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                             return preg_match("/$a/i", $var);
                         });
 
-                        if ($matches) {
+                        if ($matches == 1) {
                             $puntaje = 1;
                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
@@ -923,7 +923,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 2;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -934,7 +934,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                     return preg_match("/$a/i", $var);
                                 });
 
-                                if ($matches) {
+                                if ($matches == 1) {
                                     $puntaje = 3;
                                     $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                 }
@@ -980,7 +980,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) { // se ha encontrado el termino
+                            if ($matches == 1) { // se ha encontrado el termino
 
                                 $puntaje = 2;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
@@ -992,7 +992,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                     return preg_match("/$a/i", $var);
                                 });
 
-                                if ($matches) {
+                                if ($matches == 1) {
                                     $puntaje = 3;
                                     $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                 }
@@ -1036,7 +1036,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                     return preg_match("/$a/i", $var);
                                 });
 
-                                if ($matches) {
+                                if ($matches == 1) {
                                     $puntaje = 3;
                                     $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                     $archivoTaggeo = "ninguno.txt";
@@ -1107,7 +1107,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                         return preg_match("/$a/i", $var);
                     });
 
-                    if ($matches) {
+                    if ($matches == 1) {
                         $puntaje = 1;
                         $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
@@ -1118,7 +1118,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                             return preg_match("/$a/i", $var);
                         });
 
-                        if ($matches) {
+                        if ($matches == 1) {
                             $puntaje = 2;
                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -1129,7 +1129,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 3;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                             }
@@ -1164,7 +1164,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                             return preg_match("/$a/i", $var);
                         });
 
-                        if ($matches) { // se ha encontrado el termino
+                        if ($matches == 1) { // se ha encontrado el termino
 
                             $puntaje = 2;
                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
@@ -1176,7 +1176,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 3;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                             }
@@ -1209,7 +1209,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 3;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                                 $archivoTaggeo = "ninguno.txt";
@@ -1277,7 +1277,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                         return preg_match("/$a/i", $var);
                     });
 
-                    if ($matches) {
+                    if ($matches == 1) {
                         $puntaje = 1;
                         $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|";
 
@@ -1288,7 +1288,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                             //return preg_match("/$a/i", $var);
                         });
 
-                        if ($matches) {
+                        if ($matches == 1) {
                             $puntaje = 2;
                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -1299,7 +1299,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 3;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                             }
@@ -1334,7 +1334,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                             return preg_match("/$a/i", $var);
                         });
 
-                        if ($matches) {
+                        if ($matches == 1) {
                             $puntaje = 2;
                             $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|";
 
@@ -1345,7 +1345,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 3;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[1] . "|" . $splitEstado[2] . "|";
                             }
@@ -1378,7 +1378,7 @@ class TaggeoNoticiasAsentamiento implements ShouldQueue
                                 return preg_match("/$a/i", $var);
                             });
 
-                            if ($matches) {
+                            if ($matches == 1) {
                                 $puntaje = 3;
                                 $dondeTaggeo =  $news->id . "|" . $splitEstado[0] . "|" . $splitEstado[2] . "|" . $splitEstado[2];
                                 //echo $dondeTaggeo . " ==> " . $puntaje . " ASENTAMIENTO TITULO\n";
