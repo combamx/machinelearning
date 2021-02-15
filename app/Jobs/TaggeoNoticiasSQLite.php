@@ -110,7 +110,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
 
         try {
             $this->db->table('taggeos')->delete();
-            //$query = "INSERT INTO taggeos (news, estado, municipio, asentamiento, cp, copo, fecha) SELECT DISTINCT id as news,estado,municipio,'' as asentamiento,'' as cp,'' as copo, '" . date('Y-m-d H:m:s') . "' FROM vwRelacionNotas;";
+            //$query = "INSERT INTO taggeos (news, estado, municipio, asentamiento, cp, copo, fecha) SELECT DISTINCT id as news,estado,municipio,'' as asentamiento,'' as cp,'' as copo, '" . date('Y-m-d H:i:s') . "' FROM vwRelacionNotas;";
             //$this->db->unprepared($query);
 
             $estados = $this->db->table('estados')->select()->orderBy('estado')->get();
@@ -128,7 +128,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                         "asentamiento" => $estado->asentamiento,
                         "cp" => $estado->cp,
                         "copo" => $estado->copo,
-                        "fecha" => date('Y-m-d H:m:s')
+                        "fecha" => date('Y-m-d H:i:s')
                     ]);
 
                     echo "Se agrego " . $resultado->id . " con los datos sig. " . $estado->estado . ", " . $estado->municipio . ", " . $estado->asentamiento . "\n";
@@ -159,7 +159,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
 
                     if ($archivo != "." && $archivo != "..") {
 
-                        echo "Buscando coincidencias en " . $archivo . " " . date("H:m:s") . "\n";
+                        echo "Buscando coincidencias en " . $archivo . " " . date("H:i:s") . "\n";
 
                         foreach ($json_estado as $estado) {
                             foreach ($estado as $item) {
@@ -222,7 +222,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                                         "asentamiento" => $splitEstado[2],
                                         "cp" => $splitEstado[3],
                                         "copo" => $splitEstado[4] . " 5",
-                                        "fecha" => date('Y-m-d H:m:s')
+                                        "fecha" => date('Y-m-d H:i:s')
                                     ]);
 
                                     $noticiaTaggeada = $splitArchivo[0];
@@ -231,7 +231,6 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                                     $bAsentamiento = false;
 
                                     echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
-                                    break;
                                 } else if ($bEstado && $bMunicipio) {
                                     $this->db->table('taggeos')->insert([
                                         "news" => $splitArchivo[0],
@@ -240,7 +239,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                                         "asentamiento" => "",
                                         "cp" => "",
                                         "copo" => "4",
-                                        "fecha" => date('Y-m-d H:m:s')
+                                        "fecha" => date('Y-m-d H:i:s')
                                     ]);
 
                                     $noticiaTaggeada = $splitArchivo[0];
@@ -249,7 +248,6 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                                     $bAsentamiento = false;
 
                                     echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
-                                    break;
                                 } else if ($bEstado) {
                                     $this->db->table('taggeos')->insert([
                                         "news" => $splitArchivo[0],
@@ -258,7 +256,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                                         "asentamiento" => "",
                                         "cp" => "",
                                         "copo" => "3",
-                                        "fecha" => date('Y-m-d H:m:s')
+                                        "fecha" => date('Y-m-d H:i:s')
                                     ]);
 
                                     $noticiaTaggeada = $splitArchivo[0];
@@ -267,7 +265,6 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                                     $bAsentamiento = false;
 
                                     echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
-                                    break;
                                 } else if ($bMunicipio) {
                                     $this->db->table('taggeos')->insert([
                                         "news" => $splitArchivo[0],
@@ -276,7 +273,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                                         "asentamiento" => "",
                                         "cp" => "",
                                         "copo" => "2",
-                                        "fecha" => date('Y-m-d H:m:s')
+                                        "fecha" => date('Y-m-d H:i:s')
                                     ]);
 
                                     $noticiaTaggeada = $splitArchivo[0];
@@ -285,7 +282,6 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                                     $bAsentamiento = false;
 
                                     echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
-                                    break;
                                 } else if ($bAsentamiento) {
                                     $this->db->table('taggeos')->insert([
                                         "news" => $splitArchivo[0],
@@ -294,7 +290,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                                         "asentamiento" => $splitEstado[2],
                                         "cp" => $splitEstado[3],
                                         "copo" => $splitEstado[4] . " 6",
-                                        "fecha" => date('Y-m-d H:m:s')
+                                        "fecha" => date('Y-m-d H:i:s')
                                     ]);
 
                                     $noticiaTaggeada = $splitArchivo[0];
@@ -303,7 +299,6 @@ class TaggeoNoticiasSQLite implements ShouldQueue
                                     $bAsentamiento = false;
 
                                     echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
-                                    break;
                                 }
 
                                 //echo $estadox . "-" . $municipiox . "-" . $asentamientox . "\n";
