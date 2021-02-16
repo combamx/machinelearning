@@ -37,11 +37,12 @@ class TaggeoNoticiasSQLite implements ShouldQueue
     {
         try {
             $this->db = DB::connection('sqlite');
-            //$this->CrearMatrixdeDatos();
+
+            $this->CrearMatrixdeDatos();
             $this->CagarEstadosMemoria();
-            $this->LeerMatrixBuscarCoincidencias();
+            $this->BuscarGrepLinux();
         } catch (Exception $ex) {
-            \Log::error($ex->getMessage());
+            \Log::error($ex);
             var_dump($ex);
         }
     }
@@ -70,30 +71,24 @@ class TaggeoNoticiasSQLite implements ShouldQueue
             $news = $this->db->table('news')->select('id', 'content', 'summary', 'title')->get();
 
             foreach ($news as $item) {
-                if ($item->content != "") {
+                $directorio = "public/matrix/" . $item->id . ".txt";
 
-                    $directorio = "public/matrix/" . $item->id . ".txt";
-
-                    if (file_exists($directorio)) {
-                        unlink($directorio);
-                    }
-
-                    $fh = fopen($directorio, "a+") or die("Se produjo un error al crear el archivo");
-
-                    echo $item->id . " - " . $item->title . "\n";
-
-                    $contenido = strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $item->content)));
-                    $contenido = str_replace(array("Á", "É", "Í", "Ó", "Ú"), array("á", "é", "í", "ó", "ú"), $contenido);
-                    //$contenido = str_replace($eliminar, "", $contenido);
-                    //$contenido = str_replace($articulos, " ", $contenido);
-                    //$array_contenido = explode(" ", strtolower($contenido));
-
-                    fwrite($fh, ($item->id . "\n")) or die("No se pudo escribir en el archivo");
-                    fwrite($fh, ($item->title . "\n")) or die("No se pudo escribir en el archivo");
-                    fwrite($fh, ($item->summary . "\n")) or die("No se pudo escribir en el archivo");
-                    fwrite($fh, ($item->content . "\n")) or die("No se pudo escribir en el archivo");
-                    fclose($fh);
+                if (file_exists($directorio)) {
+                    unlink($directorio);
                 }
+
+                $fh = fopen($directorio, "a+") or die("Se produjo un error al crear el archivo");
+
+                echo $item->id . " - " . $item->title . "\n";
+
+                $contenido = strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $item->content)));
+                $contenido = str_replace(array("Á", "É", "Í", "Ó", "Ú"), array("á", "é", "í", "ó", "ú"), $contenido);
+
+                fwrite($fh, ($item->id . "\n")) or die("No se pudo escribir en el archivo");
+                fwrite($fh, ($item->title . "\n")) or die("No se pudo escribir en el archivo");
+                fwrite($fh, ($item->summary . "\n")) or die("No se pudo escribir en el archivo");
+                fwrite($fh, ($item->content . "\n")) or die("No se pudo escribir en el archivo");
+                fclose($fh);
             }
         } catch (Exception $ex) {
             throw new Exception($ex->getMessage());
@@ -144,10 +139,10 @@ class TaggeoNoticiasSQLite implements ShouldQueue
         try {
             ini_set('memory_limit', '-1');
 
-            $noticiaTaggeada = 0;
-
             $json_estado = json_decode(json_encode($this->cacheEstados));
             $this->db->table('taggeos')->delete();
+
+            $array_encontrado = array();
 
             echo "====================================================================================\n";
             echo "Iniciando la busqueda de estados, municipios y asentamientos en el contenido de la nota\n";
@@ -159,150 +154,74 @@ class TaggeoNoticiasSQLite implements ShouldQueue
 
                     if ($archivo != "." && $archivo != "..") {
 
+                        /*
+                        $splitArchivo = explode(".", $archivo);
                         echo "Buscando coincidencias en " . $archivo . " " . date("H:i:s") . "\n";
 
+                        $noticia = file_get_contents("public/matrix/" . $archivo);
+                        $noticia = addslashes(html_entity_decode(strip_tags(strtolower(trim($noticia)))));
+                        */
+
                         foreach ($json_estado as $estado) {
+
+                            $valor = 0;
+                            $splitEstado = array();
+
                             foreach ($estado as $item) {
 
-                                $bEstado = false;
-                                $bMunicipio = false;
-                                $bAsentamiento = false;
-
                                 $splitEstado = explode("|", $item->url);
-                                $splitArchivo = explode(".", $archivo);
 
-                                $pagina = file_get_contents("public/matrix/" . $archivo);
+                                foreach ($splitEstado as $i) {
+                                    $this->CagarEstadosMemoria($archivo, $i);
+                                }
+
+                                /*
                                 $estadox = $splitEstado[0];
                                 $municipiox = $splitEstado[1];
                                 $asentamientox = $splitEstado[2];
 
-                                $array_contenido = explode(PHP_EOL, strtolower($pagina)); // BUSCAR EN CONTENIDO
-                                $bEstado = array_filter($array_contenido, function ($var) use ($estadox) {
-                                    //$a = stristr($var, $estadox)."\n";
-                                    $b = preg_match("/^$estadox$/i", $var);
-                                    //$c = strpos($var, $estadox);
+                                $estado_encontrado = preg_match("/$estadox$/im", $noticia);
+                                $municipio_encontrado = preg_match("/$municipiox$/im", $noticia);
+                                $asentamiento_encontrado = preg_match("/$asentamientox$/im", $noticia);
 
-                                    //if($a != false) return true;
-                                    if($b == 1) return true;
-                                    //if($c != false) return true;
-
-                                    return false;
-                                });
-
-                                $bMunicipio = array_filter($array_contenido, function ($var) use ($municipiox) {
-                                    //$a = stristr($var, $municipiox)."\n";
-                                    $b = preg_match("/^$municipiox$/i", $var);
-                                    //$c = strpos($var, $municipiox);
-
-                                    //if($a != false) return true;
-                                    if($b == 1) return true;
-                                    //if($c != false) return true;
-
-                                    return false;
-                                });
-
-                                $bAsentamiento = array_filter($array_contenido, function ($var) use ($asentamientox) {
-                                    //$a = stristr($var, $asentamientox)."\n";
-                                    $b = preg_match("/$asentamientox$/i", $var);
-                                    //$c = strpos($var, $asentamientox);
-
-                                    //if($a != false) return true;
-                                    if($b == 1) return true;
-                                    //if($c != false) return true;
-
-                                    return false;
-                                });
-
-                                //if ($bEstado && $bMunicipio && $bAsentamiento && $noticiaTaggeada != $splitArchivo[0]) {
-                                if ($bEstado && $bMunicipio && $bAsentamiento) {
-                                    $this->db->table('taggeos')->insert([
-                                        "news" => $splitArchivo[0],
-                                        "estado" => $splitEstado[0],
-                                        "municipio" => $splitEstado[1],
-                                        "asentamiento" => $splitEstado[2],
-                                        "cp" => $splitEstado[3],
-                                        "copo" => $splitEstado[4] . " 5",
-                                        "fecha" => date('Y-m-d H:i:s')
-                                    ]);
-
-                                    $noticiaTaggeada = $splitArchivo[0];
-                                    $bEstado = false;
-                                    $bMunicipio = false;
-                                    $bAsentamiento = false;
-
-                                    echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
-                                } else if ($bEstado && $bMunicipio) {
-                                    $this->db->table('taggeos')->insert([
-                                        "news" => $splitArchivo[0],
-                                        "estado" => $splitEstado[0],
-                                        "municipio" => $splitEstado[1],
-                                        "asentamiento" => "",
-                                        "cp" => "",
-                                        "copo" => "4",
-                                        "fecha" => date('Y-m-d H:i:s')
-                                    ]);
-
-                                    $noticiaTaggeada = $splitArchivo[0];
-                                    $bEstado = false;
-                                    $bMunicipio = false;
-                                    $bAsentamiento = false;
-
-                                    echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
-                                } else if ($bEstado) {
-                                    $this->db->table('taggeos')->insert([
-                                        "news" => $splitArchivo[0],
-                                        "estado" => $splitEstado[0],
-                                        "municipio" => "",
-                                        "asentamiento" => "",
-                                        "cp" => "",
-                                        "copo" => "3",
-                                        "fecha" => date('Y-m-d H:i:s')
-                                    ]);
-
-                                    $noticiaTaggeada = $splitArchivo[0];
-                                    $bEstado = false;
-                                    $bMunicipio = false;
-                                    $bAsentamiento = false;
-
-                                    echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
-                                } else if ($bMunicipio) {
-                                    $this->db->table('taggeos')->insert([
-                                        "news" => $splitArchivo[0],
-                                        "estado" => $splitEstado[0],
-                                        "municipio" => $splitEstado[1],
-                                        "asentamiento" => "",
-                                        "cp" => "",
-                                        "copo" => "2",
-                                        "fecha" => date('Y-m-d H:i:s')
-                                    ]);
-
-                                    $noticiaTaggeada = $splitArchivo[0];
-                                    $bEstado = false;
-                                    $bMunicipio = false;
-                                    $bAsentamiento = false;
-
-                                    echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
-                                } else if ($bAsentamiento) {
-                                    $this->db->table('taggeos')->insert([
-                                        "news" => $splitArchivo[0],
-                                        "estado" => $splitEstado[0],
-                                        "municipio" => $splitEstado[1],
-                                        "asentamiento" => $splitEstado[2],
-                                        "cp" => $splitEstado[3],
-                                        "copo" => $splitEstado[4] . " 6",
-                                        "fecha" => date('Y-m-d H:i:s')
-                                    ]);
-
-                                    $noticiaTaggeada = $splitArchivo[0];
-                                    $bEstado = false;
-                                    $bMunicipio = false;
-                                    $bAsentamiento = false;
-
-                                    echo "Se agrego " . $splitArchivo[0] . " a la tabla de taggeos, con esta informacion que se encontro " . $splitEstado[0] . ", " . $splitEstado[1] . ", " . $splitEstado[2] . "\n";
+                                if ($estado_encontrado == 1 && $municipio_encontrado == 1 && $asentamiento_encontrado == 1) {
+                                    echo $valor = 5;
+                                } else if ($estado_encontrado == 0 && $municipio_encontrado == 1 && $asentamiento_encontrado == 1) {
+                                    echo $valor = 4;
+                                } else if ($estado_encontrado == 0 && $municipio_encontrado == 0 && $asentamiento_encontrado == 1) {
+                                    echo $valor = 3;
+                                } else if ($estado_encontrado == 1 && $municipio_encontrado == 1 && $asentamiento_encontrado == 0) {
+                                    echo $valor = 2;
+                                } else if ($estado_encontrado == 1 && $municipio_encontrado == 0 && $asentamiento_encontrado == 0) {
+                                    echo $valor = 1;
                                 }
 
-                                //echo $estadox . "-" . $municipiox . "-" . $asentamientox . "\n";
+
+                                switch ($valor) {
+                                    case 1:
+                                        break;
+                                    case 2:
+                                        break;
+                                    case 3:
+                                        //array_push($array_encontrado, $splitEstado);
+                                        break;
+                                }
+                                */
                             }
+
+                            //\Log::debug($array_encontrado);
+
+                            /*
+                            $this->db->table('taggeos')->insert([
+                                "news" => $splitArchivo[0],
+                                "estado" => $splitEstado[0],
+                                "municipio" => $splitEstado[1],
+                                "asentamiento" => $splitEstado[2],
+                                "cp" => $splitEstado[3],
+                                "copo" => $splitEstado[4] . " 5",
+                                "fecha" => date('Y-m-d H:i:s')
+                            ]);
+                            */
                         }
                     }
                 }
@@ -335,7 +254,7 @@ class TaggeoNoticiasSQLite implements ShouldQueue
 
                         $datos_estado = file_get_contents("public/estados/" . $archivo);
                         $json_estado = json_decode($datos_estado, true);
-                        $json_estado = $json_estado[0];
+                        $json_estado = $json_estado;
 
                         array_push($this->cacheEstados, $json_estado);
 
@@ -348,6 +267,69 @@ class TaggeoNoticiasSQLite implements ShouldQueue
 
             echo "Terminando la carga de estados a memoria\n";
             echo "====================================================================================\n";
+        } catch (Exception $ex) {
+            \Log::error($ex->getMessage());
+            throw new Exception($ex->getMessage());
+        }
+    }
+
+    private function BuscarPalabra($rutaSimbolos, $palabra)
+    {
+        $rutaSimbolos = "tabla_de_simbolos.txt";
+        $archivoTds1 = fopen($rutaSimbolos, "r+");
+
+        $x = 1;
+
+        while (!feof($archivoTds1)) {
+
+            $busca = fgets($archivoTds1);
+
+            //if (strstr($busca, $palabra))
+            if (strpos($busca, $palabra)) {
+
+                echo "Palabra encontrada: $palabra\n";
+
+                return;
+            } else {
+                echo 'No se encontro la palabra ' . $palabra . ', es un Infiltrado (Verifique Mayusculas y Minusculas)';
+            }
+
+            $x++;
+        }
+
+        fclose($archivoTds1);
+        return $archivoTds1;
+    }
+
+    private function BuscarGrepLinux()
+    {
+        try {
+            $json_estado = json_decode(json_encode($this->cacheEstados));
+
+            $files = glob('public/grep/*'); //obtenemos todos los nombres de los ficheros
+            foreach ($files as $file) {
+                if (is_file($file))
+                    unlink($file); //elimino el fichero
+            }
+
+            $fh = fopen("public/grep/command.txt", "a+") or die("Se produjo un error al crear el archivo");
+
+            foreach ($json_estado as $estados) {
+                foreach ($estados as $estado) {
+                    $archivo = str_replace(array(" ", "|"), array("-", "_"), $estado->url) . ".txt";
+                    $command = sprintf('grep -E -io "%s"  public/matrix/*.txt >> public/grep/%s', $estado->url, $archivo);
+                    shell_exec($command);
+                    echo $command . "\n";
+
+                    //$contenido = strip_tags(strtolower(str_replace(array("\n", "\t", "\\"), "", $item->content)));
+                    //$contenido = str_replace(array("Á", "É", "Í", "Ó", "Ú"), array("á", "é", "í", "ó", "ú"), $contenido);
+
+                    fwrite($fh, ($command. "\n")) or die("No se pudo escribir en el archivo");
+                }
+            }
+
+            fclose($fh);
+
         } catch (Exception $ex) {
             \Log::error($ex->getMessage());
             throw new Exception($ex->getMessage());
